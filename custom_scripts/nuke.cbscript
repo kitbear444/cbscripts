@@ -13,7 +13,7 @@ $NukeDistance = 20
 $NukeDimension = 0
 
 # sets default time for timer in seconds
-$ClockStart = 5
+$ClockStart = 10
 
 $Dimensions = [
     "minecraft:overworld",
@@ -38,6 +38,8 @@ end
 reset
     # kills previous nuke if one already exists
     /kill @Nuke
+    /kill @Position
+    /kill @Position2
 
     # sets up intermediate scoreboard trackers
     /scoreboard objectives add x_coord dummy
@@ -185,9 +187,6 @@ end
 
 # called to test if player is in range of desired position
 function in_range()
-    @Position.<pos> = @Nuke.<pos>
-    # Position2 is just used for particle emitting
-    @Position2.<pos> = @Nuke.<pos>
     # TODO: stores distance, although it goes unused for now
     local_nuke_dist = @Nuke.distance
 
@@ -221,6 +220,8 @@ function end_nuke()
     end
     # removes bossbar timer
     /bossbar set countdown players
+    # moves Nuke back to origin
+    /tp @Nuke 0 0 0
 end
 
 # creates particles around the Nuke
@@ -228,13 +229,12 @@ function do_nuke_area_particles()
     # creates the first slower ring of particles
     as @Position at @s
         /tp @s ~ ~ ~ ~5 ~
-        #/particle flame ^ ^ ^19.5 0 2 0 0 100
         /particle dust 1 0.5 0 10 ^ ^ ^19.5 0 2 0 0 10
     end
+
     # creates the second faster ring of particles
     as @Position2 at @s
-        /tp @s ~ ~ ~ ~-5 ~
-        #/particle flame ^ ^ ^19.5 0 2 0 0 100
+        /tp @s ~ ~ ~ ~5 ~
         /particle dust 1 0 0 10 ^ ^ ^19.5 0 2 0 0 10
     end
 end
@@ -301,6 +301,12 @@ end
 function teleport_nuke()
     # does the teleport
     /tp @Nuke @s
+    # sets position markers
+    @Position.<pos> = @Nuke.<pos>
+    # Position2 is just used for particle emitting
+    @Position2.<pos> = @Nuke.<pos>
+    @Position2.ry = @Nuke.ry*-1
+    #@Position2.ry = @Position.ry*2.0
     # tells the player where the Nuke is at
     tell_nuke_position()
 end
