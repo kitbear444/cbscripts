@@ -1,0 +1,415 @@
+dir "C:\Users\dcwil\AppData\Roaming\PrismLauncher\instances\KitSMP- Balance\.minecraft\saves\New World"
+desc "Nuke minigame for KitSMP S2: Balance"
+scale 1000
+
+import common
+
+# default initial position of nuke
+$NukeXPos = 0
+$NukeYPos = 0
+$NukeZPos = 0
+$NukeDistance = 20
+# dimensions are numbered. overworld starts at 1 to avoid zero division
+$NukeDimension = 0
+
+# sets default time for timer in seconds
+$ClockStart = 5
+
+$Dimensions = [
+    "minecraft:overworld",
+    "minecraft:the_nether",
+    "minecraft:the_end",
+    "aether:the_aether",
+    "twilightforest:twilight_forest",
+]
+
+# creates team ints
+$SafeTeam = 1
+$OutTeam = 2
+
+define @Nuke = @Entity[type=armor_stand,limit=1]
+    create {NoGravity:1b,Invisible:1,Invulnerable:1b,Tags:["Nuke"]}
+
+    distance : FallDistance float 1.0
+    dimension : PortalCooldown int 1
+    deploying : NoBasePlate byte 1
+end
+
+reset
+    # kills previous nuke if one already exists
+    /kill @Nuke
+
+    # sets up intermediate scoreboard trackers
+    /scoreboard objectives add x_coord dummy
+    /scoreboard objectives add y_coord dummy
+    /scoreboard objectives add z_coord dummy
+    /scoreboard objectives add distance dummy
+    /scoreboard objectives add dimension dummy
+
+    # gives nuke default scoreboard values
+    /scoreboard players set @Nuke x_coord $NukeXPos
+    /scoreboard players set @Nuke y_coord $NukeYPos
+    /scoreboard players set @Nuke z_coord $NukeZPos
+    /scoreboard players set @Nuke distance $NukeDistance
+    /scoreboard players set @Nuke dimension $NukeDimension
+
+    # sets clock start
+    clock_start = $ClockStart
+    # gives the Nuke the default timer value in ticks
+    nuke_timer = clock_start*20+20
+
+    # sets initial nuke position
+    set_nuke_position_param($NukeXPos, $NukeYPos, $NukeZPos)
+    set_nuke_distance_param($NukeDistance)
+    set_nuke_dimension_param($NukeDimension)
+
+    # sets up custom item right-click detection
+    /scoreboard objectives add nuke_item_used minecraft.used:minecraft.warped_fungus_on_a_stick
+
+    # generates two teams
+    /team add red {"text":"Out","italic":true,"color":"#aa0000"}
+    /team modify red seeFriendlyInvisibles false
+    /team add white "Safe"
+    /team modify white color white
+    /team modify white seeFriendlyInvisibles false
+
+    # summons armor stand to keep track of variables
+    init()
+
+    # creates boss bar for countdown timer
+    /bossbar remove countdown
+    /bossbar add countdown {"text":"Nuke Countdown","color":"red","bold":true}
+    /execute store result bossbar countdown value run scoreboard players get Global nuke_timer
+    /execute store result bossbar countdown max run scoreboard players get Global nuke_timer
+    /bossbar set countdown color red
+
+    join_white_team_all()
+end
+
+function init()
+    as create @Nuke $NukeXPos $NukeYPos $NukeZPos
+        @s.deploying = False
+    end
+
+    create @Position 0.0 0.0 0.0
+    create @Position2 0.0 0.0 0.0
+
+    # removes Nuke items from player if they exists
+    as @a 
+        remove_nuke_controls()
+        remove_nuke_detonator()
+    end
+
+    # gives random player the controller at first
+    as @r
+        give_nuke_controls()
+    end
+end
+
+# set the nuke's position w/ params
+function set_nuke_position_param(x, y, z)
+    @Nuke.<pos> = <x, y, z>
+end
+
+# sets the nuke's distance w/ params
+function set_nuke_distance_param(dist)
+    @Nuke.distance = dist
+end
+
+# sets the nuke's dimension w/ params
+function set_nuke_dimension_param(dim)
+    @Nuke.dimension = dim
+end
+
+# helper function that sets the nuke's position
+function set_nuke_position()
+    set_nuke_position_x()
+    set_nuke_position_y()
+    set_nuke_position_z()
+end
+
+# set the nuke's x position
+function set_nuke_position_x()
+    /execute store result entity @Nuke Pos[0] double 0.01 run scoreboard players get @Nuke x_coord
+end
+
+# set the nuke's x position
+function set_nuke_position_y()
+    /execute store result entity @Nuke Pos[1] double 0.01 run scoreboard players get @Nuke y_coord
+end
+
+# set the nuke's x position
+function set_nuke_position_z()
+    /execute store result entity @Nuke Pos[2] double 0.01 run scoreboard players get @Nuke z_coord
+end
+
+# sets the nuke's distance
+function set_nuke_distance()
+    /execute store result entity @Nuke FallDistance float 0.01 run scoreboard players get @Nuke distance
+end
+
+# sets the nuke's dimension
+function set_nuke_dimension()
+    /execute store result entity @Nuke PortalCooldown int 1 run scoreboard players get @Nuke dimension
+end
+
+# syncs up the nuke_timer values if clock_start gets changed
+function sync_nuke_timer()
+    # resets timer
+    nuke_timer = clock_start*20+20
+    # sets the new max countdown value
+    /execute store result bossbar countdown max run scoreboard players get Global nuke_timer
+end
+
+# makes the running player join the Out team if they are not already part of it
+function join_red_team()
+    if @s[team=!red]
+        @s.team = $OutTeam
+        /team join red @s
+    end
+end
+
+# makes the running player join the Safe team if they are not already part of it
+function join_white_team()
+    if @s[team=!white]
+        @s.team = $SafeTeam
+        /team join white @s
+    end
+end
+
+# makes all players join the Safe team
+function join_white_team_all()
+    @a.team = $SafeTeam
+    /team join white @a
+end
+
+# called to test if player is in range of desired position
+function in_range()
+    @Position.<pos> = @Nuke.<pos>
+    # Position2 is just used for particle emitting
+    @Position2.<pos> = @Nuke.<pos>
+    # TODO: stores distance, although it goes unused for now
+    local_nuke_dist = @Nuke.distance
+
+    # starts deploying the nuke if player is in range
+    as @Nuke at @Position
+        if @p[distance=..20]
+            # removes nuke detonator from players inventory
+            remove_nuke_detonator()
+            # starts Nuke deployment
+            @s.deploying = True
+            return 1
+        else
+            # return code 0 means the deployment failed
+            return 0
+        end
+    end
+end
+
+# ends the Nuke's detonation
+function end_nuke()
+    # cause explosion
+    do_nuke_explosion()
+    # turns off deploying
+    @Nuke.deploying = False
+    # resets timer
+    nuke_timer = clock_start*20+20
+    # adds player to "Out" team if their timer reduced
+    as @Player at @Position
+        @s.team = $OutTeam
+        /team join red @s[distance=..20]
+    end
+    # removes bossbar timer
+    /bossbar set countdown players
+end
+
+# creates particles around the Nuke
+function do_nuke_area_particles()
+    # creates the first slower ring of particles
+    as @Position at @s
+        /tp @s ~ ~ ~ ~5 ~
+        #/particle flame ^ ^ ^19.5 0 2 0 0 100
+        /particle dust 1 0.5 0 10 ^ ^ ^19.5 0 2 0 0 10
+    end
+    # creates the second faster ring of particles
+    as @Position2 at @s
+        /tp @s ~ ~ ~ ~-5 ~
+        #/particle flame ^ ^ ^19.5 0 2 0 0 100
+        /particle dust 1 0 0 10 ^ ^ ^19.5 0 2 0 0 10
+    end
+end
+
+# creates explosion particles and sound around Nuke
+function do_nuke_explosion()
+    # creates the first slower ring of particles
+    as @Position at @s
+        /playsound minecraft:entity.generic.explode master @a[distance=..50] ~ ~ ~ 2
+        /particle explosion ~ ~ ~1 20 20 20 3 2000
+    end
+end
+
+# keeps track of the Nuke's countdown
+function countdown(count)
+    as @Player at @Position
+        # sets the bossbar timer
+        /bossbar set countdown players @a[distance=..20]
+        # changes the bossbar value
+        /execute store result bossbar countdown value run scoreboard players get Global nuke_timer
+
+        # displays warning message to user
+        sec_time = nuke_timer/20
+        if sec_time > 0
+            if sec_time > 5
+                # plays sound effect on the timer going down
+                /playsound minecraft:entity.experience_orb.pickup player @s ~ ~ ~ 1.5
+            else
+                # plays sound effect to alert the player the nuke is about to go off
+                /playsound minecraft:block.anvil.land player @s ~ ~ ~ 1.3
+            end
+            # displays timer
+            title @a[distance=..20] 0 15 10 "(sec_time)"
+        else if @s.team == $SafeTeam
+            # plays sound effect on the timer ending
+            /playsound minecraft:block.redstone_torch.burnout player @s ~ ~ ~ 1.5
+            title @a[distance=..20] 10 15 20 "You are now {ROUT{-!"
+        end
+    end
+end
+
+# gives a player the nuke controls
+function give_nuke_controls()
+    /give @s warped_fungus_on_a_stick{id:"nuke:nuke_controls",display:{Name:'{"text":"Nuke Controls","color":"dark_green","bold":true}'},CustomRoleplayData:1b,CustomModelData:0,nuke:nuke_controls} 1
+end
+
+# removes nuke controls from players inventory
+function remove_nuke_controls()
+    /clear @s warped_fungus_on_a_stick{id:"nuke:nuke_controls"}
+end
+
+# gives a player the nuke detonator
+function give_nuke_detonator()
+    /give @s warped_fungus_on_a_stick{id:"nuke:nuke_detonator",display:{Name:'{"text":"Nuke Detonator","color":"dark_red","bold":true}'},CustomRoleplayData:1b,CustomModelData:1,nuke:nuke_detonator} 1
+end
+
+# removes nuke controls from players inventory
+function remove_nuke_detonator()
+    # gets rid of book in players inventory
+    /clear @s warped_fungus_on_a_stick{id:"nuke:nuke_detonator"}
+end
+
+# teleports Nuke to the player
+function teleport_nuke()
+    # does the teleport
+    /tp @Nuke @s
+    # tells the player where the Nuke is at
+    tell_nuke_position()
+end
+
+# gives the player a message that tells them where they deployed the Nuke
+function tell_nuke_position()
+    # stores the Nuke's x for formatting
+    /data modify storage $namespace:global args.x set from entity @Nuke Pos[0]
+    /execute store result storage nuke:global args.x int 1 run data get storage nuke:global args.x
+    # stores the Nuke's y as an int for formatting
+    /data modify storage $namespace:global args.y set from entity @Nuke Pos[1]
+    /execute store result storage nuke:global args.y int 1 run data get storage nuke:global args.y
+    # stores the Nuke's z as an int for formatting
+    /data modify storage $namespace:global args.z set from entity @Nuke Pos[2]
+    /execute store result storage nuke:global args.z int 1 run data get storage nuke:global args.z
+
+    # sends a formatting message to the player
+    /tellraw @s {"bold":true,"text":"Nuke has been deployed at:","color":"aqua"}
+    # outputs the new position of the Nuke
+    /tellraw @s {"storage":"nuke:global","nbt":"args","interpet":true,"color":"aqua"}
+end
+
+# gives the player a message that tells them where they deployed the Nuke
+function tell_sorry_message()
+    /tellraw @s {"bold":true,"text":"There are no players at that location, try again!","color":"red"}
+end
+
+# run every tick, determines if player is near deployed Nuke
+clock tick
+    # checks if the Nuke is currently being deployed
+    if @Nuke.deploying
+        as @Player at @Position
+            # removes a tick from the timer every tick
+            nuke_timer--
+
+            # announces countdown once per second
+            if nuke_timer % 20 == 0
+                countdown(nuke_timer/20)
+            end
+
+            # ends nuke if the timer is no longer active
+            unless nuke_timer > 0
+                end_nuke()
+                # redistributes the Nuke controller to another random player
+                as @r
+                    give_nuke_controls()
+                end
+            end
+        end
+        do_nuke_area_particles()
+    end
+end
+
+# determines when a nuke item is used
+clock nuke_item_used
+    # handles right clicking with Nuke detonator
+    as @Player[nbt={SelectedItem:{id:"minecraft:warped_fungus_on_a_stick",tag:{id:"nuke:nuke_detonator"}}}] if @s.nuke_item_used >= 1 at @Player
+        # resets the nuke_item_used score
+        /scoreboard players reset @s nuke_item_used
+        # plays click sound
+        /playsound minecraft:block.comparator.click player @s ~ ~ ~ 1
+        # checks if players are in range of radius of nuke, and if so, starts it
+        if not (in_range())
+            # send sorry message
+            tell_sorry_message()
+        else
+            # removes nuke detonator from players inventory
+            remove_nuke_detonator()
+        end
+    end
+
+    # handles right clicking with Nuke controller
+    as @Player[nbt={SelectedItem:{id:"minecraft:warped_fungus_on_a_stick",tag:{id:"nuke:nuke_controls"}}}] if @s.nuke_item_used >= 1
+        # resets the nuke_item_used score
+        /scoreboard players reset @s nuke_item_used
+        # plays sound effect on Nuke placement
+        /playsound minecraft:block.grass.place player @s ~ ~ ~ 1
+        # removes nuke controller from players inventory
+        remove_nuke_controls()
+        # teleports the Nuke to the players position
+        teleport_nuke()
+        # gives the player the detonator to use now that the nuke is placed
+        give_nuke_detonator()
+    end
+end
+
+# constantly checks for presence of controls in players inventory
+#clock book
+#    as @Player[nbt={Inventory:[{id:"minecraft:written_book",tag:{id:"nuke:nuke_controls"}}]}]
+#        # receives text from book
+#        /data modify storage $namespace:global args.x_coord set from entity @s Inventory[0].tag.pages[0]
+#        /data modify storage $namespace:global args.y_coord set from entity @s Inventory[0].tag.pages[1]
+#        /data modify storage $namespace:global args.z_coord set from entity @s Inventory[0].tag.pages[2]
+#        # TODO: post 1.20.1, this could be done with a macro function with the above coordinates
+#        text_test()
+#    end
+#end
+
+# for testing
+function test()
+    # resets nuke
+    #reset()
+
+    # queues nuke's position and sets it
+    /scoreboard players set @Nuke x_coord 30050
+    /scoreboard players set @Nuke y_coord 600
+    /scoreboard players set @Nuke z_coord 30000
+    set_nuke_position()
+
+    # tests if player is in range of nuke
+    in_range()
+end
