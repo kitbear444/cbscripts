@@ -76,7 +76,7 @@ reset
     /team modify white seeFriendlyInvisibles false
 
     # summons armor stand to keep track of variables
-    init()
+    nuke_setup()
 
     # creates boss bar for countdown timer
     /bossbar remove countdown
@@ -84,11 +84,9 @@ reset
     /execute store result bossbar countdown value run scoreboard players get Global nuke_timer
     /execute store result bossbar countdown max run scoreboard players get Global nuke_timer
     /bossbar set countdown color red
-
-    join_white_team_all()
 end
 
-function init()
+function nuke_setup()
     as create @Nuke $NukeXPos $NukeYPos $NukeZPos
         @s.deploying = False
     end
@@ -106,6 +104,14 @@ function init()
     as @r
         give_nuke_controls()
     end
+end
+
+# can be called when first starting the game
+function init()
+    # assigns all players to the "Safe" team
+    join_white_team_all()
+    # resets everything to begin
+    reset()
 end
 
 # set the nuke's position w/ params
