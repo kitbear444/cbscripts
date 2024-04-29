@@ -13,7 +13,7 @@ $NukeDistance = 20
 $NukeDimension = 0
 
 # sets default time for timer in seconds
-$ClockStart = 10
+$ClockStart = 20
 
 $Dimensions = [
     "minecraft:overworld",
@@ -27,20 +27,15 @@ $Dimensions = [
 $SafeTeam = 1
 $OutTeam = 2
 
-define @Nuke = @Entity[type=armor_stand,limit=1]
-    create {NoGravity:1b,Invisible:1,Invulnerable:1b,Tags:["Nuke"]}
+define @Nuke = @Entity[type=marker,limit=1]
+    create {NoGravity:1b,Invisible:1,Tags:["Nuke"]}
 
     distance : FallDistance float 1.0
     dimension : PortalCooldown int 1
-    deploying : NoBasePlate byte 1
+    deploying : Invulnerable byte 1
 end
 
 reset
-    # kills previous nuke if one already exists
-    /kill @Nuke
-    /kill @Position
-    /kill @Position2
-
     # sets up intermediate scoreboard trackers
     /scoreboard objectives add x_coord dummy
     /scoreboard objectives add y_coord dummy
@@ -87,6 +82,11 @@ reset
 end
 
 function nuke_setup()
+    # kills previous nuke if one already exists
+    /kill @Nuke
+    /kill @Position
+    /kill @Position2
+
     as create @Nuke $NukeXPos $NukeYPos $NukeZPos
         @s.deploying = False
     end
@@ -199,14 +199,19 @@ function in_range()
     # starts deploying the nuke if player is in range
     as @Nuke at @Position
         if @p[distance=..20]
-            # removes nuke detonator from players inventory
-            remove_nuke_detonator()
-            # starts Nuke deployment
-            @s.deploying = True
-            return 1
+            if @p[distance=20..]
+                # starts Nuke deployment
+                @s.deploying = True
+                return 0
+            else
+                # Nuke would eliminate all players, so it can be blocked for balancing reasons
+                # return code 2 means deployment failed
+                @s.deploying = True
+                return 0
+            end
         else
-            # return code 0 means the deployment failed
-            return 0
+            # return code 1 means the deployment failed
+            return 1
         end
     end
 end
@@ -284,7 +289,7 @@ end
 
 # gives a player the nuke controls
 function give_nuke_controls()
-    /give @s warped_fungus_on_a_stick{id:"nuke:nuke_controls",display:{Name:'{"text":"Nuke Controls","color":"dark_green","bold":true}'},CustomRoleplayData:1b,CustomModelData:0,nuke:nuke_controls} 1
+    /give @s warped_fungus_on_a_stick{id:"nuke:nuke_controls",display:{Name:'{"text":"Nuke Controls","color":"dark_green","bold":true}'},CustomRoleplayData:1b,CustomModelData:2,nuke:nuke_controls} 1
 end
 
 # removes nuke controls from players inventory
@@ -340,6 +345,11 @@ function tell_sorry_message()
     /tellraw @s {"bold":true,"text":"There are no players at that location, try again!","color":"red"}
 end
 
+# gives the player a message that tells them where they deployed the Nuke
+function tell_too_many_message()
+    /tellraw @s {"bold":true,"text":"This position would target every player, try again!","color":"red"}
+end
+
 # run every tick, determines if player is near deployed Nuke
 clock tick
     # checks if the Nuke is currently being deployed
@@ -375,9 +385,13 @@ clock nuke_item_used
         # plays click sound
         /playsound minecraft:block.comparator.click player @s ~ ~ ~ 1
         # checks if players are in range of radius of nuke, and if so, starts it
-        if not (in_range())
+        check = in_range()
+        if check == 1
             # send sorry message
             tell_sorry_message()
+        else if check == 2
+            # send too many players message
+            tell_too_many_message()
         else
             # removes nuke detonator from players inventory
             remove_nuke_detonator()
