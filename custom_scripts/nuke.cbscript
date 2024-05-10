@@ -101,9 +101,7 @@ function nuke_setup()
     end
 
     # gives random player the controller at first
-    as @r
-        give_nuke_controls()
-    end
+    give_nuke_controls_random()
 end
 
 # can be called when first starting the game
@@ -205,12 +203,13 @@ function in_range()
                 return 0
             else
                 # Nuke would eliminate all players, so it can be blocked for balancing reasons
-                # return code 2 means deployment failed
+                # return code 2 means deployment failed due to all elimination
                 @s.deploying = True
                 return 0
             end
         else
-            # return code 1 means the deployment failed
+            # Prevents the Nuke from going off if no players are in the range
+            # return code 1 means the deployment failed due to no players
             return 1
         end
     end
@@ -225,9 +224,8 @@ function end_nuke()
     # resets timer
     nuke_timer = clock_start*20+20
     # adds player to "Out" team if their timer reduced
-    as @Player at @Position
-        @s.team = $OutTeam
-        /team join red @s[distance=..20]
+    as @Player[distance=..20] at @Position
+        join_red_team()
     end
     # removes bossbar timer
     /bossbar set countdown players
@@ -292,6 +290,14 @@ function give_nuke_controls()
     /give @s warped_fungus_on_a_stick{id:"nuke:nuke_controls",display:{Name:'{"text":"Nuke Controls","color":"dark_green","bold":true}'},CustomRoleplayData:1b,CustomModelData:2,nuke:nuke_controls} 1
 end
 
+# gives a random player the nuke controls
+function give_nuke_controls_random()
+    # redistributes the Nuke controller to another random player
+    as @r
+        give_nuke_controls()
+    end
+end
+
 # removes nuke controls from players inventory
 function remove_nuke_controls()
     /clear @s warped_fungus_on_a_stick{id:"nuke:nuke_controls"}
@@ -342,7 +348,7 @@ end
 
 # gives the player a message that tells them where they deployed the Nuke
 function tell_sorry_message()
-    /tellraw @s {"bold":true,"text":"There are no players at that location, try again!","color":"red"}
+    /tellraw @s {"bold":true,"text":"Sorry, there are no players at that location!","color":"red"}
 end
 
 # gives the player a message that tells them where they deployed the Nuke
@@ -367,9 +373,7 @@ clock tick
             unless nuke_timer > 0
                 end_nuke()
                 # redistributes the Nuke controller to another random player
-                as @r
-                    give_nuke_controls()
-                end
+                give_nuke_controls_random()
             end
         end
         do_nuke_area_particles()
@@ -389,6 +393,11 @@ clock nuke_item_used
         if check == 1
             # send sorry message
             tell_sorry_message()
+            # for now, I'm configuring this just to redistribute the nuke immediately if no players are present
+            # removes nuke detonator from players inventory
+            remove_nuke_detonator()
+            # redistributes the Nuke controller back to player
+            give_nuke_controls()
         else if check == 2
             # send too many players message
             tell_too_many_message()
