@@ -64,7 +64,8 @@ reset
     /scoreboard objectives add nuke_item_used minecraft.used:minecraft.warped_fungus_on_a_stick
 
     # generates two teams
-    /team add red {"text":"Out","italic":true,"color":"#aa0000"}
+    /team add red {"text":"Out","italic":true}
+    /team modify red color red
     /team modify red seeFriendlyInvisibles false
     /team add white "Safe"
     /team modify white color white
