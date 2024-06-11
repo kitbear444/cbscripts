@@ -168,20 +168,16 @@ function sync_nuke_timer()
     /execute store result bossbar countdown max run scoreboard players get Global nuke_timer
 end
 
-# makes the running player join the Out team if they are not already part of it
+# makes the running player join the Out team
 function join_red_team()
-    if @s[team=!red]
-        @s.team = $OutTeam
-        /team join red @s
-    end
+    @s.team = $OutTeam
+    /team join red @s
 end
 
-# makes the running player join the Safe team if they are not already part of it
+# makes the running player join the Safe team
 function join_white_team()
-    if @s[team=!white]
-        @s.team = $SafeTeam
-        /team join white @s
-    end
+    @s.team = $SafeTeam
+    /team join white @s
 end
 
 # makes all players join the Safe team
@@ -361,15 +357,15 @@ end
 clock tick
     # checks if the Nuke is currently being deployed
     if @Nuke.deploying
+        # removes a tick from the timer every tick
+        nuke_timer--
+
+        # announces countdown once per second
+        if nuke_timer % 20 == 0
+            countdown(nuke_timer/20)
+        end
+
         as @Player at @Position
-            # removes a tick from the timer every tick
-            nuke_timer--
-
-            # announces countdown once per second
-            if nuke_timer % 20 == 0
-                countdown(nuke_timer/20)
-            end
-
             # ends nuke if the timer is no longer active
             unless nuke_timer > 0
                 end_nuke()
