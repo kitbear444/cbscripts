@@ -221,7 +221,7 @@ function end_nuke()
     # resets timer
     nuke_timer = clock_start*20+20
     # adds player to "Out" team if their timer reduced
-    as @Player[distance=..20] at @Position
+    as @s[distance=..20] at @Position
         join_red_team()
     end
     # removes bossbar timer
@@ -290,14 +290,12 @@ end
 # gives a random player the nuke controls
 function give_nuke_controls_random()
     # redistributes the Nuke controller to another random player
-    as @r
-        give_nuke_controls()
-    end
+    /give @r warped_fungus_on_a_stick{id:"nuke:nuke_controls",display:{Name:'{"text":"Nuke Controls","color":"dark_green","bold":true}'},CustomRoleplayData:1b,CustomModelData:2,nuke:nuke_controls} 1
 end
 
 # removes nuke controls from players inventory
 function remove_nuke_controls()
-    /clear @s warped_fungus_on_a_stick{id:"nuke:nuke_controls"}
+    /clear @a warped_fungus_on_a_stick{id:"nuke:nuke_controls"}
 end
 
 # gives a player the nuke detonator
@@ -308,7 +306,7 @@ end
 # removes nuke controls from players inventory
 function remove_nuke_detonator()
     # gets rid of book in players inventory
-    /clear @s warped_fungus_on_a_stick{id:"nuke:nuke_detonator"}
+    /clear @a warped_fungus_on_a_stick{id:"nuke:nuke_detonator"}
 end
 
 # teleports Nuke to the player
@@ -365,13 +363,13 @@ clock tick
             countdown(nuke_timer/20)
         end
 
-        as @Player at @Position
-            # ends nuke if the timer is no longer active
-            unless nuke_timer > 0
+        # ends nuke if the timer is no longer active
+        unless nuke_timer > 0
+            as @Player at @Position
                 end_nuke()
-                # redistributes the Nuke controller to another random player
-                give_nuke_controls_random()
             end
+            # redistributes the Nuke controller to another random player
+            give_nuke_controls_random()
         end
         do_nuke_area_particles()
     end
