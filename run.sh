@@ -19,7 +19,7 @@ echo -ne "\033]0;$(basename "$1")\007"
 cd "$(dirname "$0")"
 
 # Run the python compiler script with the provided file
-python3 compile.py "$1"
+python compile.py "$1"
 
 # Pause and wait for the user to press Enter
 read -p "Press Enter to continue..."
