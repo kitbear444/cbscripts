@@ -1,0 +1,53 @@
+dir "/Users/derek/Library/Application Support/PrismLauncher/instances/Latest/minecraft/saves/New World"
+desc "Dreamscape datapack...reminiscent of lucid blocks"
+scale 1
+
+import common
+import random
+
+$PERCENT_CHANCE = 25
+
+$Dimensions = [
+    "minecraft:overworld",
+    "minecraft:the_nether",
+    "minecraft:the_end",
+]
+
+reset
+    global_reset()
+end
+
+function global_reset()
+    /say Dreamscape reset!
+
+    ## Set up scoreboard objectives
+    # Resets hasSlept
+    /scoreboard objectives remove hasSlept
+    # Creates objectives
+    /scoreboard objectives add hasSlept minecraft.custom:minecraft.time_since_rest hasSlept
+    # Sets every players value to 2 just to bypass the 1 check later
+    /scoreboard players set @a hasSlept 2
+end
+
+# run every tick
+clock tick
+    as @Player
+        /scoreboard players get @s ran_number
+        if @s.hasSlept == 1
+            @s.ran_number = get_random_number()
+            if @s.ran_number < $PERCENT_CHANCE
+                /say Oooooo you sleeeeepyyyy...
+            end
+        end
+    end
+end
+
+# Generates random number between 0 and 100
+function get_random_number()
+    return randint(0, 100)
+end
+
+# For testing purposes only
+function test()
+    /say Testing Dreamscape...
+end
