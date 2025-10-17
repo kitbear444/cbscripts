@@ -5,7 +5,7 @@
 @rem
 @rem To generate blocks.json, via command prompt at the minecraft server:
 @rem java -DbundlerMainClass=net.minecraft.data.Main -jar {jar_path} --server --reports
-@ECHO CBScript 1.20
+@ECHO CBScript 1.20 v.K0.1
 @title %~nx1
 @cd "%~dp0"
 py -3 compile.py %1
