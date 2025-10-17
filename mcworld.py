@@ -7,7 +7,7 @@ import json
 import io
 import zipfile
 from CompileError import CompileError
-import glob
+from pathlib import Path
 
 class mcworld(object):
 	def __init__(self, leveldir, namespace):
@@ -24,13 +24,13 @@ class mcworld(object):
 		try:
 			# Construct a search path for all .json files in the directory
 			statsdir = os.path.join(leveldir, 'stats')
-			search_path = os.path.join(statsdir, '*.json')
-			list_of_files = glob.glob(search_path)
+			search_path = Path(statsdir) #os.path.join(statsdir, '*.json')
+			list_of_files = search_path.glob("*.json") #glob.glob(search_path)
 			key_to_find = 'DataVersion'
 
 			# Handle case where no JSON files are found
 			if not list_of_files:
-				#print(f"Error: No .json files found in '{statsdir}'.")
+				print(f"Error: No .json files found in '{search_path}'")
 				return 0
 
 			# Find the file with the latest modification time
