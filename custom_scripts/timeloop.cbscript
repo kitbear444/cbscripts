@@ -1,0 +1,186 @@
+dir "C:\Users\dcwil\AppData\Roaming\PrismLauncher\instances\KitSMP- Balance\.minecraft\saves\New World"
+desc "Custom version of timeloop databack rewritten in cbscript. Heavily based on Tombino's datapacks, but modified to work better in multiplayer. For use in KitSMP S2: Balance"
+scale 1000
+
+import common
+
+# determines the max number of loops that will exist for each player
+$MaxLoops = 10
+# default time in seconds
+$DefaultTimer = 20
+
+reset
+    # stores the loop timer in seconds
+    loop_timer_secs = $DefaultTimer
+    # grabs the max number of loops
+    max_loops = $MaxLoops
+
+    # stops any recordings and reset values if they exist
+    stop()
+
+    # sets up mocap mod
+    setup()
+end
+
+# can be called when first starting the game
+function start()
+    # resets everything to begin
+    reset()
+    # activates the loops (effectively activates the tick clock)
+    activator = 1
+    # starts the first loop
+    as @a
+        start_loop()
+    end
+end
+
+function start_loop()
+    /mocap recording start @Player
+end
+
+# resets the timer back to its original value
+function reset_timer()
+    loop_timer = loop_timer_secs*20+20
+end
+
+# configures the mocap mod settings upon first run
+function setup()
+    /mocap settings entityTrackingDistance 0
+    /mocap settings setBlockStates true
+end
+
+function stop()
+    # stops the tick clock if it is running
+    activator = 0
+    # resets the timer back to its default value
+    reset_timer()
+
+    # stops any running recordings
+    /mocap recording stop
+    /mocap recording stop
+
+    # stops playing any playing recordings
+    /mocap playing stopAll
+
+    # removes any leftover loop recordings
+    /mocap recordings remove loop1
+    /mocap recordings remove loop2
+    /mocap recordings remove loop3
+    /mocap recordings remove loop4
+    /mocap recordings remove loop5
+    /mocap recordings remove loop6
+    /mocap recordings remove loop7
+    /mocap recordings remove loop8
+    /mocap recordings remove loop9
+    /mocap recordings remove loop10
+    /mocap recordings remove looplast
+
+    # sets the tracked loop count back to 0
+    loopCount = 0
+end
+
+# allows for the pausing of the looping
+function pause()
+    # makes it so the tick clock stops
+    activator = -1
+
+    # stops any current recordings
+    /mocap recording stop
+    /mocap recording stop
+    # stops playing any current recordings
+    /mocap playing stopAll
+end
+
+# unpauses the paused loops
+function unpause()
+    # allows the loop timer to go again
+    activator = 1
+end
+
+# forcibly ends the current loops and advances to the next
+function force_next_loop()
+    # effectively force starts the next loop
+    loop_next()
+end
+
+function start_mocap_playing()
+    /mocap playing start loop1
+    /mocap playing start loop2
+    /mocap playing start loop3
+    /mocap playing start loop4
+    /mocap playing start loop5
+    /mocap playing start loop6
+    /mocap playing start loop7
+    /mocap playing start loop8
+    /mocap playing start loop9
+    /mocap playing start looplast
+end
+
+# helper function that handles going to the next loop logic
+function loop_next()
+    # increases the number of loops to keep track of
+    loopCount++
+    # stops the current recording
+    /mocap recording stop
+    # saves the new loop
+    # ugh, hate this
+    if loopCount == 1
+        /mocap recordings remove loop1
+        /mocap recording save loop1
+    else if loopCount == 2
+        /mocap recordings remove loop2
+        /mocap recording save loop2
+    else if loopCount == 3
+        /mocap recordings remove loop3
+        /mocap recording save loop3
+    else if loopCount == 4
+        /mocap recordings remove loop4
+        /mocap recording save loop4
+    else if loopCount == 5
+        /mocap recordings remove loop5
+        /mocap recording save loop5
+    else if loopCount == 6
+        /mocap recordings remove loop6
+        /mocap recording save loop6
+    else if loopCount == 7
+        /mocap recordings remove loop7
+        /mocap recording save loop7
+    else if loopCount == 8
+        /mocap recordings remove loop8
+        /mocap recording save loop8
+    else if loopCount == 9
+        /mocap recordings remove loop9
+        /mocap recording save loop9
+    else if loopCount >= 10
+        /mocap recordings remove looplast
+        /mocap recording save looplast
+    end
+
+    # stops all current recordings before starting them again
+    /mocap playing stopAll
+    # starts all of the current loop recordings as their respective player
+    as @a
+        start_mocap_playing()
+    end
+
+    # resets the timer after it gets this low
+    reset_timer()
+
+    # starts the next recording
+    as @a
+        start_loop()
+    end
+end
+
+clock tick
+    if activator == 1
+        # reduces the loop timer every tick
+        loop_timer--
+
+        # resets the timer and starts another recording when the timer hits 0
+        unless loop_timer > 0
+            # runs the next loop logic
+            loop_next()
+        end
+    end
+end
