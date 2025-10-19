@@ -1,17 +1,34 @@
-dir "/Users/derek/Library/Application Support/PrismLauncher/instances/Latest/minecraft/saves/New World"
+dir "C:\Users\dcwil\AppData\Roaming\PrismLauncher\instances\Latest Snapshot\minecraft\saves\New World"
 desc "Dreamscape datapack...reminiscent of lucid blocks"
 scale 1
 
 import common
 import random
+#import inv_storage
 
-$PERCENT_CHANCE = 25
+$PERCENT_CHANCE = 100
 
 $Dimensions = [
     "minecraft:overworld",
     "minecraft:the_nether",
     "minecraft:the_end",
 ]
+
+$Dreams = [
+    "dream:dream1",
+]
+
+# This advancement triggers the 'on_sleep_start' function
+advancement player_slept {
+    criteria: {
+        slept: {
+            trigger: "minecraft:slept_in_bed"
+        }
+    },
+    rewards: {
+        "function": "$namespace:on_sleep_start"
+    }
+}
 
 reset
     global_reset()
@@ -29,22 +46,62 @@ function global_reset()
     /scoreboard players set @a hasSlept 2
 end
 
-# run every tick
-clock tick
-    as @Player
-        /scoreboard players get @s ran_number
-        if @s.hasSlept == 1
-            @s.ran_number = get_random_number()
-            if @s.ran_number < $PERCENT_CHANCE
-                /say Oooooo you sleeeeepyyyy...
+# This function is the reward for the advancement
+function on_sleep_start()
+    # "Flag" the player so we know they are sleeping
+    @s.justSlept = 1
+    
+    # Revoke the advancement so it can be granted again next time
+    /advancement revoke @s only $namespace:player_slept
+end
+
+# Handles when a player sleeps
+function handle_sleep()
+    @s.ran_number = get_random_number()
+    if @s.ran_number <= $PERCENT_CHANCE
+        # Store the players inventory
+        
+        # Clear the players inventory for the new dimension
+
+        # Put player in random dream dimension
+        @s.dream_idx = get_random_dimension()
+        switch @s.dream_idx
+            case $i in $range($len($Dreams))
+                $dream = $Dreams[$i]
+                /execute in $dream run spreadplayers ~ ~ 0 5 false @s
             end
         end
     end
+
+    @s.justSlept = 0
+end
+
+# run every tick
+clock tick
+    as @a
+        if @s.hasSlept == 1 and @s.justSlept == 1
+            # Actually teleports the player
+            handle_sleep()
+        end
+    end
+end
+
+# Just a handy function just for me
+function clear_chat()
+    for i=1 to 20
+        /tellraw @a {text:""}
+    end 
 end
 
 # Generates random number between 0 and 100
 function get_random_number()
     return randint(0, 100)
+end
+
+# Pick random dimension
+function get_random_dimension()
+    $dreams_len = $len($Dreams)
+    return randint(0, $dreams_len)
 end
 
 # For testing purposes only
