@@ -1,5 +1,6 @@
 from .block_base import block_base
 import collections
+import collections.abc
 from CompileError import CompileError
 
 class switch_block(block_base):
@@ -36,7 +37,7 @@ class switch_block(block_base):
 				except:
 					raise Exception(f'Could not evaluate case value at line {line}')
 				
-				if not isinstance(vals, collections.Iterable):
+				if not isinstance(vals, collections.abc.Iterable) and not isinstance(vals, collections.Iterable):
 					raise Exception(f'Python "{python}" is not iterable at line {line}')
 
 				for val in vals:
