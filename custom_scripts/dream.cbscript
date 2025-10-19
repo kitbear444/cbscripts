@@ -4,7 +4,7 @@ scale 1
 
 import common
 import random
-#import inv_storage
+import inv_storage
 
 $PERCENT_CHANCE = 100
 
@@ -60,9 +60,9 @@ function handle_sleep()
     @s.ran_number = get_random_number()
     if @s.ran_number <= $PERCENT_CHANCE
         # Store the players inventory
-        
+        storing()
         # Clear the players inventory for the new dimension
-
+        clear_inventory()
         # Put player in random dream dimension
         @s.dream_idx = get_random_dimension()
         switch @s.dream_idx
@@ -91,6 +91,13 @@ function clear_chat()
     for i=1 to 20
         /tellraw @a {text:""}
     end 
+end
+
+# Clears the inventory of the running player
+function clear_inventory()
+    as @s
+        /clear
+    end
 end
 
 # Generates random number between 0 and 100

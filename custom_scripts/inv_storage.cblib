@@ -1,0 +1,54 @@
+# Allows for storing and loading inventory
+# Note: relies on scoreboard ID system, sets it up if not already set up
+
+reset
+    # Erases the players data in the inv namespace
+    /data remove storage $namespace:inv players
+    # Creates ID scoreboard
+    /scoreboard objectives add ID dummy
+    # Counter for player IDs
+    count = 0
+    # Revokes first time advancement so each player is reassigned an ID
+    /advancement revoke @a only $namespace:first_join 
+end
+
+function init()
+    reset()
+end
+
+advancement first_join {
+	criteria: {
+		requirement: {
+			trigger: "minecraft:tick"
+        }
+	},
+	rewards: {
+		"function": "$namespace:set_id"
+	}
+}
+
+function set_id()
+    @s.ID = count
+    count++
+end
+
+function storing()
+    # Erases the inv namespace
+    /data remove storage $namespace:inv this
+    # Stores data in temporary "this" root key
+    /data modify storage $namespace:inv this.Inventory set from entity @s Inventory
+    this.ID = @s.ID
+    # Executes storing_update with the ID macro
+    with
+        $(ID) = @s.ID
+    do
+        storing_update() with macros
+    end
+end
+
+function storing_update()
+    # Creates a key in the $namespace:inv storage that is a player array that keys on the players' ID
+    /$execute unless data storage $namespace:inv players[{ID:$(ID)}] run data modify storage $namespace:inv players append value {ID:$(ID)}
+    # Appends "this" data structure to the players array by ID
+    /data modify storage $namespace:inv players[{ID:$(ID)}] merge from storage $namespace:inv this
+end
