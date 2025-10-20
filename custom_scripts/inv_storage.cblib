@@ -1,13 +1,19 @@
 # Allows for storing and loading inventory
 # Note: relies on scoreboard ID system, sets it up if not already set up
 
+array slot[36]
+
 reset
-    # Erases the players data in the inv namespace
+    # Erases the players and this data in the inv namespace
     /data remove storage $namespace:inv players
+    /data remove storage $namespace:inv this
     # Creates ID scoreboard
     /scoreboard objectives add ID dummy
-    # Counter for player IDs
+    # Counter for setting player IDs
     count = 0
+
+    # Creates dummy Slot
+    /scoreboard objectives add Slot dummy
     # Revokes first time advancement so each player is reassigned an ID
     /advancement revoke @a only $namespace:first_join 
 end
@@ -32,8 +38,9 @@ function set_id()
     count++
 end
 
+# Stores the running player's current inventory
 function storing()
-    # Erases the inv namespace
+    # Erases the this root for the inv namespace
     /data remove storage $namespace:inv this
     # Stores data in temporary "this" root key
     /data modify storage $namespace:inv this.Inventory set from entity @s Inventory
@@ -44,11 +51,100 @@ function storing()
     do
         storing_update() with macros
     end
+
+    # Clean up this just in case
+    /data remove storage $namespace:inv this
 end
 
+# Updates the storage key for the player 
 function storing_update()
-    # Creates a key in the $namespace:inv storage that is a player array that keys on the players' ID
+    # Creates a key in the $namespace:inv storage that is a player array that keys on the players' ID, and skips if that player already exists
     /$execute unless data storage $namespace:inv players[{ID:$(ID)}] run data modify storage $namespace:inv players append value {ID:$(ID)}
     # Appends "this" data structure to the players array by ID
     /data modify storage $namespace:inv players[{ID:$(ID)}] merge from storage $namespace:inv this
+end
+
+# Returns the players inventory to them
+function returning()
+    # # Read player Scoreboard ID
+    #this.ID = @s.ID
+    # Erases the this root for the inv namespace
+    /data remove storage $namespace:inv this
+    with
+        $(ID) = @s.ID
+    do
+        # Reading the selected player's data from the entire array of data of all players.
+        returning_read() with macros
+    end
+    
+    for i=1 to 41
+        # This command runs 'returning_item' *only* if the
+        # storage list still has an item (Inventory[0]).
+        /execute if data storage $namespace:inv this.Inventory[0] run function $namespace:returning_item
+    end
+
+    # Delete stored player's data
+    with
+        $(ID) = @s.ID
+    do
+        /$data remove storage $namespace:inv players[{ID:$(ID)}]
+    end
+end
+
+
+# Grabs the inventory data AND restores it to the player
+function returning_read()
+    # 1. Grab the player's saved data from storage
+    /$data modify storage $namespace:inv this set from storage $namespace:inv players[{ID:$(ID)}]
+end
+
+function returning_item()
+    # Sets components if it isn't set for an item
+    /execute unless data storage $namespace:inv this.Inventory[0].components run data modify storage $namespace:inv this.Inventory[0].components set value {}
+
+    /execute store result score @s slot_id run data get storage $namespace:inv this.Inventory[0].id
+    /execute store result score @s Slot run data get storage $namespace:inv this.Inventory[0].Slot
+    /execute store result score @s count run data get storage $namespace:inv this.Inventory[0].count
+    /execute store result score @s components run data get storage $namespace:inv this.Inventory[0].components
+    # If a normal item slot, use the returning_inventory function, otherwise it is equipment
+    with
+        $(Slot) = @s.Slot
+        $(id) = @s.slot_id
+        $(count) = @s.count
+        $(components) = @s.components
+    do
+        # Debug info
+        /tellraw @s {text:"slot_idx: $(Slot), id: $(id), count: $(count), components: $(components)"}
+
+        switch @s.Slot
+            case $i in $range(0, 35)
+                /say adding normal item
+                /$loot replace entity @s container.$(Slot) loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+            end
+            case -106
+                /say adding offhand
+                /$loot replace entity @s weapon.offhand loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+            end
+            case 100
+                /say adding feet
+                /$loot replace entity @s armor.feet loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+            end
+            case 101
+                /say adding legs
+                /$loot replace entity @s armor.legs loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+            end
+            case 102
+                /say adding chest
+                /$loot replace entity @s armor.chest loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+            end
+            case 103
+                /say adding head
+                /$loot replace entity @s armor.head loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+            end
+        end
+    end
+    # After returning the current item, remove this slot from storage and start returning the next item
+    /data remove storage $namespace:inv this.Inventory[0]
+    #/execute unless data storage $namespace:inv this.Inventory[-1].components run data modify storage $namespace:inv this.Inventory[-1].components set value {}
+    #returning_item()
 end
