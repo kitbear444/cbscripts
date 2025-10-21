@@ -39,19 +39,19 @@ advancement first_join {
         }
 	},
 	rewards: {
-		"function": "$namespace:set_id"
+		"function": "$namespace:_set_id"
 	}
 }
 
 # Sets ID for each player
-function set_id()
+function _set_id()
     @s.ID = count
     count++
 end
 
 # Stores the running player's current inventory
-function storing()
-    # Executes storing_update with the ID macro
+function store()
+    # Executes store_update with the ID macro
     with
         $(ID) = @s.ID
     do
@@ -83,7 +83,7 @@ function storing()
         # Deletes temp equipment key
         /$data remove storage $namespace:inv this[{ID:$(ID)}].equipment
 
-        storing_update() with macros
+        store_update() with macros
 
         # Clean up this just in case
         /$data remove storage $namespace:inv this[{ID:$(ID)}]
@@ -91,25 +91,25 @@ function storing()
 end
 
 # Updates the storage key for the player 
-function storing_update()
+function store_update()
     # Creates a key in the $namespace:inv storage that is a player array that keys on the players' ID, and skips if that player already exists
     /$execute unless data storage $namespace:inv players[{ID:$(ID)}] run data modify storage $namespace:inv players append value {ID:$(ID)}
     # Appends "this" data structure to the players array by ID
     /$data modify storage $namespace:inv players[{ID:$(ID)}] merge from storage $namespace:inv this[{ID:$(ID)}]
 end
 
-# Returns the players inventory to them
-function returning()
+# Restores the players inventory to them
+function restore()
     with
         $(ID) = @s.ID
     do
         # Reading the selected player's data from the entire array of data of all players.
-        returning_read() with macros
+        _restore_read() with macros
 
         for i=1 to 41
-            # This command runs 'returning_item' *only* if the
+            # This command runs '_restore_item' *only* if the
             # storage list still has an item (Inventory[0]).
-            /$execute if data storage $namespace:inv this[{ID:$(ID)}].Inventory[0] run function $namespace:returning_item with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
+            /$execute if data storage $namespace:inv this[{ID:$(ID)}].Inventory[0] run function $namespace:_restore_item with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
         end
 
         # Delete stored player's data
@@ -119,7 +119,7 @@ end
 
 
 # Grabs the inventory data AND restores it to the player
-function returning_read()
+function _restore_read()
     # Erases the this root for the inv namespace
     /$data remove storage $namespace:inv this[{ID:$(ID)}]
     # Grab the player's saved data from storage
@@ -127,10 +127,10 @@ function returning_read()
 end
 
 # Handles formatting the item data, and then adds the item to the player's inventory depending on the type
-function returning_item()
+function _restore_item()
     # Store the Slot NBT in the temp value per player
     /$scoreboard players set @s Slot $(Slot)
-    # If a normal item slot, use the returning_inventory function, otherwise it is equipment
+    # If a normal item slot, use the _restore_inventory function, otherwise it is equipment
     with
         $(ID) = @s.ID
         $(Slot) = @s.Slot
@@ -143,28 +143,28 @@ function returning_item()
                 # FIX: cbscript will optimize single-line case statements into inline functions as opposed to extra files. However, it always assumes a function name, not command syntax.
                 # Fix the compiler later, but for now, the noop function just does nothing
                 noop()
-                /$function $namespace:returning_inventory with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
+                /$function $namespace:_restore_inventory with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
             end
             case $i in $EQUIPMENT_SLOTS
                 # FIX: cbscript will optimize single-line case statements into inline functions as opposed to extra files. However, it always assumes a function name, not command syntax.
                 # Fix the compiler later, but for now, the noop function just does nothing
                 noop()
-                /$function $namespace:returning_equipment with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
+                /$function $namespace:_restore_equipment with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
             end
         end
 
-        # After returning the current item, remove this slot from storage and start returning the next item
+        # After restore the current item, remove this slot from storage and start restore the next item
         /$data remove storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
     end
 end
 
-# Handles returning normal items
-function returning_inventory()
+# Handles restoreing normal items
+function _restore_inventory()
     /$loot replace entity @s container.$(Slot) loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
 end
 
 # Handles the special equipment slots
-function returning_equipment()
+function _restore_equipment()
     /$execute if score @s Slot matches -106 run loot replace entity @s weapon.offhand loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
     /$execute if score @s Slot matches 100 run loot replace entity @s armor.feet loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
     /$execute if score @s Slot matches 101 run loot replace entity @s armor.legs loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
