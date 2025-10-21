@@ -51,20 +51,21 @@ end
 
 # Stores the running player's current inventory
 function storing()
-    # Erases the "this" root for the inv namespace
-    /data remove storage $namespace:inv this
-    # Stores data in temporary "this" root key
-    /data modify storage $namespace:inv this.Inventory set from entity @s Inventory
-    this.ID = @s.ID
     # Executes storing_update with the ID macro
     with
         $(ID) = @s.ID
     do
-        storing_update() with macros
-    end
+        # Erases the "this" root for the inv namespace
+        /$data remove storage $namespace:inv this[{ID:$(ID)}]
+        # Stores data in temporary "this" root key
+        /$data modify storage $namespace:inv this[{ID:$(ID)}].Inventory set from entity @s Inventory
+        /$data modify storage $namespace:inv this[{ID:$(ID)}].ID set from entity @s ID
 
-    # Clean up this just in case
-    /data remove storage $namespace:inv this
+        storing_update() with macros
+
+        # Clean up this just in case
+        /$data remove storage $namespace:inv this[{ID:$(ID)}]
+    end
 end
 
 # Updates the storage key for the player 
@@ -72,7 +73,7 @@ function storing_update()
     # Creates a key in the $namespace:inv storage that is a player array that keys on the players' ID, and skips if that player already exists
     /$execute unless data storage $namespace:inv players[{ID:$(ID)}] run data modify storage $namespace:inv players append value {ID:$(ID)}
     # Appends "this" data structure to the players array by ID
-    /data modify storage $namespace:inv players[{ID:$(ID)}] merge from storage $namespace:inv this
+    /$data modify storage $namespace:inv players[{ID:$(ID)}] merge from storage $namespace:inv this[{ID:$(ID)}]
 end
 
 # Returns the players inventory to them
@@ -82,18 +83,14 @@ function returning()
     do
         # Reading the selected player's data from the entire array of data of all players.
         returning_read() with macros
-    end
-    
-    for i=1 to 41
-        # This command runs 'returning_item' *only* if the
-        # storage list still has an item (Inventory[0]).
-        /execute if data storage $namespace:inv this.Inventory[0] run function $namespace:returning_item with storage $namespace:inv this.Inventory[0]
-    end
 
-    # Delete stored player's data
-    with
-        $(ID) = @s.ID
-    do
+        for i=1 to 41
+            # This command runs 'returning_item' *only* if the
+            # storage list still has an item (Inventory[0]).
+            /$execute if data storage $namespace:inv this[{ID:$(ID)}].Inventory[0] run function $namespace:returning_item with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
+        end
+
+        # Delete stored player's data
         /$data remove storage $namespace:inv players[{ID:$(ID)}]
     end
 end
@@ -102,36 +99,37 @@ end
 # Grabs the inventory data AND restores it to the player
 function returning_read()
     # Erases the this root for the inv namespace
-    /data remove storage $namespace:inv this
+    /$data remove storage $namespace:inv this[{ID:$(ID)}]
     # Grab the player's saved data from storage
-    /$data modify storage $namespace:inv this set from storage $namespace:inv players[{ID:$(ID)}]
+    /$data modify storage $namespace:inv this[{ID:$(ID)}] set from storage $namespace:inv players[{ID:$(ID)}]
 end
 
 # Handles formatting the item data, and then adds the item to the player's inventory depending on the type
 function returning_item()
-    # Sets components if it isn't set for an item
-    /execute unless data storage $namespace:inv this.Inventory[0].components run data modify storage $namespace:inv this.Inventory[0].components set value {}
-    
     # Store the Slot NBT in the temp value per player
     /$scoreboard players set @s Slot $(Slot)
-
     # If a normal item slot, use the returning_inventory function, otherwise it is equipment
     with
+        $(ID) = @s.ID
         $(Slot) = @s.Slot
     do
+        # Sets components if it isn't set for an item
+        /$execute unless data storage $namespace:inv this[{ID:$(ID)}].Inventory[0].components run data modify storage $namespace:inv this[{ID:$(ID)}].Inventory[0].components set value {}
+
         switch @s.Slot
             case $i in $range(0, 35)
-                /say adding normal item
-                /function $namespace:returning_inventory with storage $namespace:inv this.Inventory[0]
+                #/say adding normal item
+                /function $namespace:returning_inventory with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
             end
             case $i in $EQUIPMENT_SLOTS
                 /say adding equipment
-                /function $namespace:returning_equipment with storage $namespace:inv this.Inventory[0]
+                /function $namespace:returning_equipment with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
             end
         end
+
+        # After returning the current item, remove this slot from storage and start returning the next item
+        /$data remove storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
     end
-    # After returning the current item, remove this slot from storage and start returning the next item
-    /data remove storage $namespace:inv this.Inventory[0]
 end
 
 # Handles returning normal items
@@ -172,5 +170,5 @@ end
 # Backups the latest player data on reset...just in case
 function backup_data()
     # Grab the player's saved data from storage
-    /data modify storage $namespace:inv_bk players set from storage $namespace:inv players[{ID:$(ID)}]
+    /data modify storage $namespace:inv_bk players set from storage $namespace:inv players
 end
