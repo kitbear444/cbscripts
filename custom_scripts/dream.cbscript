@@ -18,7 +18,7 @@ $Dreams = [
     "dream:dream1",
 ]
 
-# This advancement triggers the 'on_sleep_start' function
+# This advancement triggers the '_on_sleep_start' function
 advancement player_slept {
     criteria: {
         slept: {
@@ -26,7 +26,7 @@ advancement player_slept {
         }
     },
     rewards: {
-        "function": "$namespace:on_sleep_start"
+        "function": "$namespace:_on_sleep_start"
     }
 }
 
@@ -38,16 +38,25 @@ function global_reset()
     /say Dreamscape reset!
 
     ## Set up scoreboard objectives
-    # Resets hasSlept
+    # Resets objectives
     /scoreboard objectives remove hasSlept
+    /scoreboard objectives remove sinceDeath
+    # FIX: Probably shouldn't reset this one in particular, since the game will lose context of players in dreams or not
+    #/scoreboard objectives remove inDream
+
     # Creates objectives
-    /scoreboard objectives add hasSlept minecraft.custom:minecraft.time_since_rest hasSlept
+    /scoreboard objectives add hasSlept minecraft.custom:minecraft.time_since_rest
+    /scoreboard objectives add sinceDeath minecraft.custom:minecraft.time_since_death
+    /scoreboard objectives add death minecraft.custom:minecraft.deaths
+    /scoreboard objectives add inDream dummy
     # Sets every players value to 2 just to bypass the 1 check later
     /scoreboard players set @a hasSlept 2
+    # Sets every players value to 2 just to bypass the 1 check later
+    /scoreboard players set @s sinceDeath 2
 end
 
 # This function is the reward for the advancement
-function on_sleep_start()
+function _on_sleep_start()
     # "Flag" the player so we know they are sleeping
     @s.justSlept = 1
     
@@ -56,11 +65,11 @@ function on_sleep_start()
 end
 
 # Handles when a player sleeps
-function handle_sleep()
+function _handle_sleep()
     @s.ran_number = get_random_number()
     if @s.ran_number <= $PERCENT_CHANCE
         # Store the players inventory
-        storing()
+        store()
         # Clear the players inventory for the new dimension
         clear_inventory()
         # Put player in random dream dimension
@@ -71,9 +80,29 @@ function handle_sleep()
                 /execute in $dream run spreadplayers ~ ~ 0 5 false @s
             end
         end
+        # Identify them as dreaming
+        @s.inDream = 1
     end
-
     @s.justSlept = 0
+end
+
+# Handles when a player wakes up
+function _handle_wake_up()
+    # Restore the players inventory
+    restore()
+    # Identify them as no longer dreaming
+    @s.inDream = 0
+end
+
+# Handles immediately when a player dies in a dream
+function _handle_dream_death()
+    # Removes death dropped items if keepInventory = false
+    at @s as @s
+        clear_inventory()
+        /kill @e[type=minecraft:item,distance=..4]
+    end
+    # Sets players num of deaths back to 0
+    @s.death = 0
 end
 
 # run every tick
@@ -81,7 +110,17 @@ clock tick
     as @a
         if @s.hasSlept == 1 and @s.justSlept == 1
             # Actually teleports the player
-            handle_sleep()
+            _handle_sleep()
+        end
+
+        if @s.death == 1 and @s.inDream == 1
+            # Run when the player dies, but before they wake up
+            _handle_dream_death()
+        end
+
+        if @s.sinceDeath == 1 and @s.inDream == 1
+            # Wakes the player up (in this case, due to death)
+            _handle_wake_up()
         end
     end
 end

@@ -14,6 +14,7 @@ reset
     backup_data()
 
     # Erases the this data in the inv namespace
+    # FIX: Should probably not clear the players in the future. If ID generation was only done once and never again, that would prevent this from needing to be done.
     /data remove storage $namespace:inv players
     /data remove storage $namespace:inv this
 
