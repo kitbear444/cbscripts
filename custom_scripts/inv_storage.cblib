@@ -61,6 +61,28 @@ function storing()
         /$data modify storage $namespace:inv this[{ID:$(ID)}].Inventory set from entity @s Inventory
         /$data modify storage $namespace:inv this[{ID:$(ID)}].ID set from entity @s ID
 
+        # Formats the equipment to have slots if it's in the new style, making it somewhat backwards compatible(?)
+        /$data modify storage $namespace:inv this[{ID:$(ID)}].equipment set from entity @s equipment
+
+        # Formats offhand
+        /$execute if data storage $namespace:inv this[{ID:$(ID)}].equipment.offhand run data modify storage $namespace:inv this[{ID:$(ID)}].equipment.offhand merge value {Slot:-106b}
+        /$execute if data storage $namespace:inv this[{ID:$(ID)}].equipment.offhand run data modify storage $namespace:inv this[{ID:$(ID)}].Inventory append from storage $namespace:inv this[{ID:$(ID)}].equipment.offhand
+        # Formats boot slot
+        /$execute if data storage $namespace:inv this[{ID:$(ID)}].equipment.feet run data modify storage $namespace:inv this[{ID:$(ID)}].equipment.feet merge value {Slot:100b}
+        /$execute if data storage $namespace:inv this[{ID:$(ID)}].equipment.feet run data modify storage $namespace:inv this[{ID:$(ID)}].Inventory append from storage $namespace:inv this[{ID:$(ID)}].equipment.feet
+        # Formats legging slot
+        /$execute if data storage $namespace:inv this[{ID:$(ID)}].equipment.legs run data modify storage $namespace:inv this[{ID:$(ID)}].equipment.legs merge value {Slot:101b}
+        /$execute if data storage $namespace:inv this[{ID:$(ID)}].equipment.legs run data modify storage $namespace:inv this[{ID:$(ID)}].Inventory append from storage $namespace:inv this[{ID:$(ID)}].equipment.legs
+        # Formats chestplate slot
+        /$execute if data storage $namespace:inv this[{ID:$(ID)}].equipment.chest run data modify storage $namespace:inv this[{ID:$(ID)}].equipment.chest merge value {Slot:102b}
+        /$execute if data storage $namespace:inv this[{ID:$(ID)}].equipment.chest run data modify storage $namespace:inv this[{ID:$(ID)}].Inventory append from storage $namespace:inv this[{ID:$(ID)}].equipment.chest
+        # Formats helmet slot
+        /$execute if data storage $namespace:inv this[{ID:$(ID)}].equipment.head run data modify storage $namespace:inv this[{ID:$(ID)}].equipment.head merge value {Slot:103b}
+        /$execute if data storage $namespace:inv this[{ID:$(ID)}].equipment.head run data modify storage $namespace:inv this[{ID:$(ID)}].Inventory append from storage $namespace:inv this[{ID:$(ID)}].equipment.head
+        
+        # Deletes temp equipment key
+        /$data remove storage $namespace:inv this[{ID:$(ID)}].equipment
+
         storing_update() with macros
 
         # Clean up this just in case
@@ -118,12 +140,16 @@ function returning_item()
 
         switch @s.Slot
             case $i in $range(0, 35)
-                #/say adding normal item
-                /function $namespace:returning_inventory with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
+                # FIX: cbscript will optimize single-line case statements into inline functions as opposed to extra files. However, it always assumes a function name, not command syntax.
+                # Fix the compiler later, but for now, the noop function just does nothing
+                noop()
+                /$function $namespace:returning_inventory with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
             end
             case $i in $EQUIPMENT_SLOTS
-                /say adding equipment
-                /function $namespace:returning_equipment with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
+                # FIX: cbscript will optimize single-line case statements into inline functions as opposed to extra files. However, it always assumes a function name, not command syntax.
+                # Fix the compiler later, but for now, the noop function just does nothing
+                noop()
+                /$function $namespace:returning_equipment with storage $namespace:inv this[{ID:$(ID)}].Inventory[0]
             end
         end
 
@@ -139,36 +165,19 @@ end
 
 # Handles the special equipment slots
 function returning_equipment()
-    with
-        $(Slot) = @s.Slot
-    do
-        switch @s.Slot
-            case -106
-                # Adds to offhand
-                /$loot replace entity @s weapon.offhand loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
-            end
-            case 100
-                # Adds to boots slot
-                /$loot replace entity @s armor.feet loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
-            end
-            case 101
-                # Adds to leggings slot
-                /$loot replace entity @s armor.legs loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
-            end
-            case 102
-                # Adds to chest slot
-                /$loot replace entity @s armor.chest loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
-            end
-            case 103
-                # Adds to helmet slot
-                /$loot replace entity @s armor.head loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
-            end
-        end
-    end
+    /$execute if score @s Slot matches -106 run loot replace entity @s weapon.offhand loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+    /$execute if score @s Slot matches 100 run loot replace entity @s armor.feet loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+    /$execute if score @s Slot matches 101 run loot replace entity @s armor.legs loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+    /$execute if score @s Slot matches 102 run loot replace entity @s armor.chest loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+    /$execute if score @s Slot matches 103 run loot replace entity @s armor.head loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
 end
 
 # Backups the latest player data on reset...just in case
 function backup_data()
     # Grab the player's saved data from storage
     /data modify storage $namespace:inv_bk players set from storage $namespace:inv players
+end
+
+# Intentionally blank
+function noop()
 end
