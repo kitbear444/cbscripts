@@ -1,12 +1,22 @@
 # Allows for storing and loading inventory
 # Note: relies on scoreboard ID system, sets it up if not already set up
 
-array slot[36]
+$EQUIPMENT_SLOTS = [
+    -106,
+    100,
+    101,
+    102,
+    103,
+]
 
 reset
-    # Erases the players and this data in the inv namespace
+    # Backs up player data
+    backup_data()
+
+    # Erases the this data in the inv namespace
     /data remove storage $namespace:inv players
     /data remove storage $namespace:inv this
+
     # Creates ID scoreboard
     /scoreboard objectives add ID dummy
     # Counter for setting player IDs
@@ -33,6 +43,7 @@ advancement first_join {
 	}
 }
 
+# Sets ID for each player
 function set_id()
     @s.ID = count
     count++
@@ -40,7 +51,7 @@ end
 
 # Stores the running player's current inventory
 function storing()
-    # Erases the this root for the inv namespace
+    # Erases the "this" root for the inv namespace
     /data remove storage $namespace:inv this
     # Stores data in temporary "this" root key
     /data modify storage $namespace:inv this.Inventory set from entity @s Inventory
@@ -66,10 +77,6 @@ end
 
 # Returns the players inventory to them
 function returning()
-    # # Read player Scoreboard ID
-    #this.ID = @s.ID
-    # Erases the this root for the inv namespace
-    /data remove storage $namespace:inv this
     with
         $(ID) = @s.ID
     do
@@ -80,7 +87,7 @@ function returning()
     for i=1 to 41
         # This command runs 'returning_item' *only* if the
         # storage list still has an item (Inventory[0]).
-        /execute if data storage $namespace:inv this.Inventory[0] run function $namespace:returning_item
+        /execute if data storage $namespace:inv this.Inventory[0] run function $namespace:returning_item with storage $namespace:inv this.Inventory[0]
     end
 
     # Delete stored player's data
@@ -94,57 +101,76 @@ end
 
 # Grabs the inventory data AND restores it to the player
 function returning_read()
-    # 1. Grab the player's saved data from storage
+    # Erases the this root for the inv namespace
+    /data remove storage $namespace:inv this
+    # Grab the player's saved data from storage
     /$data modify storage $namespace:inv this set from storage $namespace:inv players[{ID:$(ID)}]
 end
 
+# Handles formatting the item data, and then adds the item to the player's inventory depending on the type
 function returning_item()
     # Sets components if it isn't set for an item
     /execute unless data storage $namespace:inv this.Inventory[0].components run data modify storage $namespace:inv this.Inventory[0].components set value {}
+    
+    # Store the Slot NBT in the temp value per player
+    /$scoreboard players set @s Slot $(Slot)
 
-    /execute store result score @s slot_id run data get storage $namespace:inv this.Inventory[0].id
-    /execute store result score @s Slot run data get storage $namespace:inv this.Inventory[0].Slot
-    /execute store result score @s count run data get storage $namespace:inv this.Inventory[0].count
-    /execute store result score @s components run data get storage $namespace:inv this.Inventory[0].components
     # If a normal item slot, use the returning_inventory function, otherwise it is equipment
     with
         $(Slot) = @s.Slot
-        $(id) = @s.slot_id
-        $(count) = @s.count
-        $(components) = @s.components
     do
-        # Debug info
-        /tellraw @s {text:"slot_idx: $(Slot), id: $(id), count: $(count), components: $(components)"}
-
         switch @s.Slot
             case $i in $range(0, 35)
                 /say adding normal item
-                /$loot replace entity @s container.$(Slot) loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+                /function $namespace:returning_inventory with storage $namespace:inv this.Inventory[0]
             end
-            case -106
-                /say adding offhand
-                /$loot replace entity @s weapon.offhand loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
-            end
-            case 100
-                /say adding feet
-                /$loot replace entity @s armor.feet loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
-            end
-            case 101
-                /say adding legs
-                /$loot replace entity @s armor.legs loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
-            end
-            case 102
-                /say adding chest
-                /$loot replace entity @s armor.chest loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
-            end
-            case 103
-                /say adding head
-                /$loot replace entity @s armor.head loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+            case $i in $EQUIPMENT_SLOTS
+                /say adding equipment
+                /function $namespace:returning_equipment with storage $namespace:inv this.Inventory[0]
             end
         end
     end
     # After returning the current item, remove this slot from storage and start returning the next item
     /data remove storage $namespace:inv this.Inventory[0]
-    #/execute unless data storage $namespace:inv this.Inventory[-1].components run data modify storage $namespace:inv this.Inventory[-1].components set value {}
-    #returning_item()
+end
+
+# Handles returning normal items
+function returning_inventory()
+    /$loot replace entity @s container.$(Slot) loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+end
+
+# Handles the special equipment slots
+function returning_equipment()
+    with
+        $(Slot) = @s.Slot
+    do
+        switch @s.Slot
+            case -106
+                # Adds to offhand
+                /$loot replace entity @s weapon.offhand loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+            end
+            case 100
+                # Adds to boots slot
+                /$loot replace entity @s armor.feet loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+            end
+            case 101
+                # Adds to leggings slot
+                /$loot replace entity @s armor.legs loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+            end
+            case 102
+                # Adds to chest slot
+                /$loot replace entity @s armor.chest loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+            end
+            case 103
+                # Adds to helmet slot
+                /$loot replace entity @s armor.head loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+            end
+        end
+    end
+end
+
+# Backups the latest player data on reset...just in case
+function backup_data()
+    # Grab the player's saved data from storage
+    /data modify storage $namespace:inv_bk players set from storage $namespace:inv players[{ID:$(ID)}]
 end
