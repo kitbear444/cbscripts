@@ -4,7 +4,9 @@ scale 1
 
 import common
 import random
+
 import inv_storage
+import items
 
 $PERCENT_CHANCE = 100
 
