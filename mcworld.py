@@ -11,6 +11,7 @@ from pathlib import Path
 
 class mcworld(object):
 	def __init__(self, leveldir, namespace):
+		self.current_dir = os.getcwd()
 		self.dir = leveldir
 		self.zipbytes = io.BytesIO()
 		self.zip = zipfile.ZipFile(self.zipbytes, 'w', zipfile.ZIP_DEFLATED, False)
@@ -158,6 +159,32 @@ class mcworld(object):
 		
 		self.zip.writestr(mcmeta_file, json.dumps({'pack':{'pack_format':1, 'description':desc}}, indent=4))
 	
+	# If data folder exists in a folder named the same as the namespace, add it to the zip
+	def write_data_folder(self, source_file):
+		try:
+			script_dir = os.path.dirname(source_file.filename)
+		except AttributeError:
+			print("Error: Could not get script directory from 'source_file' object.")
+			return
+		
+		data_dir = os.path.join(script_dir, 'data')
+		if os.path.isdir(data_dir):
+			print("Found custom 'data' folder at '{data_dir}', adding contents to zip...")
+
+			# Walk through the custom 'data' directory
+			for root, dirs, files in os.walk(data_dir):
+				for file in files:
+					# Get the full path to the file on your computer
+					file_path = os.path.join(root, file)
+					
+					# Get the relative path to be used inside the zip
+					# This preserves the 'data/...' structure
+					arcname = os.path.relpath(file_path, script_dir)
+					
+					# Write the file to the zip
+					print(f"  Adding: {arcname}")
+					self.zip.write(file_path, arcname=arcname)
+
 	def write_zip(self):
 		self.zip.close()
 	
