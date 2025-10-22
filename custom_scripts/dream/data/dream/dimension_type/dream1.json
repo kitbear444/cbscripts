@@ -1,0 +1,61 @@
+{
+  "ambient_light": 0,
+  "attributes": {
+    "minecraft:audio/ambient_sounds": {
+      "loop": {
+        "sound_id": "minecraft:ambient.basalt_deltas.loop"
+      },
+      "mood": {
+        "block_search_extent": 8,
+        "offset": 2,
+        "sound": "minecraft:ambient.basalt_deltas.mood",
+        "tick_delay": 60000
+      },
+      "additions": {
+        "sound": "minecraft:ambient.basalt_deltas.additions",
+        "tick_chance": 0.001
+      }
+    },
+    "minecraft:audio/background_music": {
+      "argument": {
+        "default": {
+          "sound": "minecraft:music.end",
+          "min_delay": 0,
+          "max_delay": 0
+        }
+      }
+    },
+    "minecraft:gameplay/bed_rule": {
+      "can_set_spawn": "never",
+      "can_sleep": "never",
+      "explodes": false,
+      "error_message": {
+        "text": "You don't believe that is possible.",
+        "color": "#aa8aff"
+      }
+    },
+    "minecraft:gameplay/nether_portal_spawns_piglin": false,
+    "minecraft:gameplay/respawn_anchor_works": false,
+    "minecraft:visual/cloud_height": 392.33,
+    "minecraft:visual/cloud_opacity": 0.1,
+    "minecraft:visual/fog_color": "#3e0055",
+    "minecraft:visual/sky_color": "#000a48",
+    "minecraft:visual/extra_fog": true
+  },
+  "coordinate_scale": 1,
+  "fixed_time": 6000,
+  "effects": "minecraft:the_end",
+  "has_ceiling": false,
+  "has_skylight": true,
+  "height": 384,
+  "infiniburn": "#minecraft:infiniburn_overworld",
+  "logical_height": 384,
+  "min_y": 0,
+  "monster_spawn_block_light_limit": 0,
+  "monster_spawn_light_level": {
+    "type": "minecraft:uniform",
+    "max_inclusive": 7,
+    "min_inclusive": 0
+  },
+  "natural": false
+}

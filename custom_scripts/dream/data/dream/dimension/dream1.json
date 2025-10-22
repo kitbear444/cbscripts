@@ -1,0 +1,11 @@
+{
+  "type": "dream:dream1",
+  "generator": {
+    "type": "minecraft:noise",
+    "biome_source": {
+      "type": "minecraft:fixed",
+      "biome": "dream:main"
+    },
+    "settings": "dream:dream1"
+  }
+}
