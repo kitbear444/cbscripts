@@ -1,62 +1,46 @@
 # Implements dream items
 
-# Count really corresponds to 
-$ITEMS = [
-    '{id: "$namespace:breeze_band",components:{"minecraft:item_name": "Breeze Band","minecraft:item_model": "minecraft:breeze_rod", "minecraft:max_stack_size": 1}}',
-    '{id: "$namespace:glide_glove",components:{"minecraft:item_name": "Glide Glove","minecraft:item_model": "minecraft:bee_spawn_egg", "minecraft:max_stack_size": 1}}',
-    '{id: "$namespace:hose_hook",components:{"minecraft:item_name": "Hose Hook","minecraft:item_model": "minecraft:lead", "minecraft:max_stack_size": 1}}',
-]
+$item_breezeband = ("minecraft:breeze_rod", {"minecraft:item_name": "Breeze Band","minecraft:item_model": "minecraft:breeze_rod", "minecraft:max_stack_size": 1})
+$item_glideglove = ("minecraft:bee_spawn_egg", {"minecraft:item_name": "Glide Glove","minecraft:item_model": "minecraft:bee_spawn_egg", "minecraft:max_stack_size": 1})
+$item_hosehook = ("minecraft:lead", {"minecraft:item_name": "Hose Hook","minecraft:item_model": "minecraft:lead", "minecraft:max_stack_size": 1})
+
+$ITEMS = {
+    $int($hash('breeze_band') / 10000000000000): $item_breezeband,
+    $int($hash('glide_glove') / 10000000000000): $item_glideglove,
+    $int($hash('hose_hook') / 10000000000000): $item_hosehook,
+}
+
+macro $give_item($id, $count)
+    $item = $ITEMS[$id]
+    $mc_name = $item[0]
+    $components = $item[1]
+    /loot give @s loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$mc_name",functions:[{function:"minecraft:set_count",count:$count},{function:"minecraft:set_components",components:$components]}]}]}
+end
 
 reset
-    /$data modify storage $namespace:global item set value $ITEMS[$(ID)]
 end
 
+# Technically called by item_select dialog
 function give()
-    /$execute if data storage $namespace:global $ITEMS[$(ID)] run function $namespace:_give_item with storage $namespace:global item
+    $id = '$(id)'
+    $count = '$(count)'
+    $hash_idx = $int($hash($id) / 10000000000000)
+    switch $hash_idx
+		case $i in $ITEMS.$keys()
+            /say @s got here
+            with
+                $(idx) = $i
+            do
+                #$item = $ITEMS[$(idx)]
+                /tellraw @s {text: '$(idx)'}
+            end
+            #$give_item($hash_idx, $count)
+            #/execute run function $namespace:_give_item {id: $id, count: $count, components: $item}
+		end
+	end
 end
 
-function _give_item()
+# Helper function to actually give the item based on loot table
+function _give_item(id, count, i)
     /$loot give @s loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
-end
-
-# Main function to open the menu
-function menu_open()
-    # --- Title ---
-    /tellraw @s ["",{"text":"--- Custom Item Menu ---","color":"gold"}]
-    
-    # --- Item Selection ---
-    # Each button sets the 'item_id' score to the correct index
-    /tellraw @s ["Items: ", {"text":"[Breeze Band]","color":"aqua","clickEvent": {"action":"run_command","value":"/function $namespace:menu_select_item {\"id\":0, \"name\":\"Breeze Band\"}"}}, " ", {"text":"[Glide Glove]","color":"yellow","clickEvent": {"action":"run_command","value":"/function $namespace:menu_select_item {\"id\":1, \"name\":\"Glide Glove\"}"}}, " ", {"text":"[Hose Hook]","color":"gray","clickEvent": {"action":"run_command","value":"/function $namespace:menu_select_item {\"id\":2, \"name\":\"Hose Hook\"}"}}]
-
-    # --- Count Selection ---
-    # These buttons modify the 'item_count' score
-    /tellraw @s ["Count: ", {"text":"[-10]","color":"red","clickEvent":{"action":"run_command","value":"/scoreboard players remove @s item_count 10"}}, " ", {"text":"[-1]","color":"red","clickEvent":{"action":"run_command","value":"/scoreboard players remove @s item_count 1"}}, " ", {"text":"[+1]","color":"green","clickEvent":{"action":"run_command","value":"/scoreboard players add @s item_count 1"}}, " ", {"text":"[+10]","color":"green","clickEvent":{"action":"run_command","value":"/scoreboard players add @s item_count 10"}}, " | ", {"text":"[1]","color":"white","clickEvent":{"action":"run_command","value":"/scoreboard players set @s item_count 1"}}, " ", {"text":"[64]","color":"white","clickEvent":{"action":"run_command","value":"/scoreboard players set @s item_count 64"}}]
-
-    # --- Confirmation ---
-    # This button CALLS your CBScript function
-    with
-        $(ID) = @s.item_id
-        $(Count) = @s.item_count
-    do
-        # Generate item string with the custom ID and count
-        /$data modify storage $namespace:global item set value $ITEMS[$(ID)]
-        /$data modify storage $namespace:global item merge value {Count:$(Count)}
-
-        /$tellraw @s [{"text":"[CLICK TO GIVE]","color":"light_purple","bold":true,"clickEvent":{"action":"run_command","value":"/function $namespace:give with storage $namespace:global item"}}]
-    end
-end
-
-# Helper function called by the item buttons
-# This uses macros to show feedback
-function menu_select_item()
-    # 1. Set the player's 'item_id' score based on the 'id' macro from the clickEvent
-    /$scoreboard players set @s item_id $(id)
-    
-    # 2. Show feedback
-    /$tellraw @s [{"text":"Selected item: $(name)","color":"gray","italic":true}]
-end
-
-function menu_show_selection()
-    # This provides constant feedback on what is selected
-    /title @s actionbar [{"text":"Item: ","color":"gold"},{"score":{"name":"@s","objective":"item_id"}},{"text":" | Count: ","color":"gold"},{"score":{"name":"@s","objective":"item_count"}}]
 end
