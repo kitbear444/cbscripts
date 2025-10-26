@@ -17,12 +17,11 @@
       }
     },
     "minecraft:audio/background_music": {
-      "argument": {
-        "default": {
-          "sound": "minecraft:music.end",
-          "min_delay": 0,
-          "max_delay": 0
-        }
+      "default": {
+        "sound": "minecraft:music.end",
+        "min_delay": 0,
+        "max_delay": 0,
+        "replace_current_music": true
       }
     },
     "minecraft:gameplay/bed_rule": {

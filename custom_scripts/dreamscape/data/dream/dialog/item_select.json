@@ -1,25 +1,19 @@
 {
-  "type": "minecraft:notice",
+  "type": "minecraft:multi_action",
   "title": "Dreamscape Item Selector",
-  "body": {
-    "type": "minecraft:item",
-    "item": {
-      "id": "minecraft:breeze_rod",
-      "count": 1
-    },
-    "show_decorations": false,
-    "show_tooltip": true
-  },
-  "inputs": [
+  "body": [
     {
-      "type": "minecraft:text",
-      "key": "item_name",
-      "width": 180,
-      "label": "Item Name",
-      "label_visible": true,
-      "initial": "breeze_band",
-      "max_length": 128
-    },
+      "type": "minecraft:plain_message",
+      "contents": {
+        "text": "Select your item!",
+        "type": "text",
+        "color": "blue",
+        "shadow_color": 8421631,
+        "bold": true
+      }
+    }
+  ],
+  "inputs": [
     {
       "type": "minecraft:number_range",
       "key": "item_count",
@@ -34,11 +28,73 @@
   "can_close_with_escape": true,
   "pause": true,
   "after_action": "close",
-  "action": {
-    "label": "Submit",
-    "action": {
-      "type": "minecraft:dynamic/run_command",
-      "template": "execute as @p run function dream:give {id: \"$(item_name)\", count: $(item_count)}"
+  "columns": 2,
+  "actions": [
+    {
+      "label": {
+        "text": "Breeze Band",
+        "type": "text",
+        "color": "blue",
+        "shadow_color": 0,
+        "bold": true,
+        "hover_event": {
+          "action": "show_item",
+          "id": "minecraft:breeze_rod",
+          "components": {
+            "minecraft:item_name": "Breeze Band",
+            "minecraft:item_model": "dream:breeze_band"
+          },
+          "count": 1
+        }
+      },
+      "action": {
+        "type": "minecraft:dynamic/run_command",
+        "template": "function dream:give {id: 0, count: $(item_count)}"
+      }
+    },
+    {
+      "label": {
+        "text": "Glide Globe",
+        "type": "text",
+        "color": "yellow",
+        "shadow_color": 0,
+        "italic": true,
+        "hover_event": {
+          "action": "show_item",
+          "id": "minecraft:bee_spawn_egg",
+          "components": {
+            "minecraft:item_name": "Glide Glove",
+            "minecraft:item_model": "dream:glide_glove"
+          },
+          "count": 1
+        }
+      },
+      "action": {
+        "type": "minecraft:dynamic/run_command",
+        "template": "function dream:give {id: 1, count: $(item_count)}"
+      }
+    },
+    {
+      "label": {
+        "text": "Hose Hook",
+        "type": "text",
+        "color": "aqua",
+        "shadow_color": 1,
+        "italic": true,
+        "hover_event": {
+          "action": "show_item",
+          "id": "minecraft:lead",
+          "components": {
+            "minecraft:item_name": "Hose Hook",
+            "minecraft:item_model": "dream:hose_hook"
+          },
+          "count": 1
+        }
+      },
+      "action": {
+        "type": "minecraft:dynamic/run_command",
+        "template": "function dream:give {id: 2, count: $(item_count)}"
+      }
     }
-  }
+  ]
 }

@@ -4,43 +4,46 @@ $item_breezeband = ("minecraft:breeze_rod", {"minecraft:item_name": "Breeze Band
 $item_glideglove = ("minecraft:bee_spawn_egg", {"minecraft:item_name": "Glide Glove","minecraft:item_model": "minecraft:bee_spawn_egg", "minecraft:max_stack_size": 1})
 $item_hosehook = ("minecraft:lead", {"minecraft:item_name": "Hose Hook","minecraft:item_model": "minecraft:lead", "minecraft:max_stack_size": 1})
 
-$ITEMS = {
-    $int($hash('breeze_band') / 10000000000000): $item_breezeband,
-    $int($hash('glide_glove') / 10000000000000): $item_glideglove,
-    $int($hash('hose_hook') / 10000000000000): $item_hosehook,
-}
+# Each item is accessed via it's assigned id in the array
+$ITEMS = [
+    $item_breezeband,
+    $item_glideglove,
+    $item_hosehook,
+]
 
-macro $give_item($id, $count)
-    $item = $ITEMS[$id]
+macro $give_item($idx, $count)
+    $item = $ITEMS[$idx]
     $mc_name = $item[0]
     $components = $item[1]
     /loot give @s loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$mc_name",functions:[{function:"minecraft:set_count",count:$count},{function:"minecraft:set_components",components:$components]}]}]}
 end
 
 reset
+    # Creates dummy item_id and item_count
+    @s.item_idx = 0
+    @s.item_count = 1
 end
 
 # Technically called by item_select dialog
 function give()
-    $id = '$(id)'
-    $count = '$(count)'
-    $hash_idx = $int($hash($id) / 10000000000000)
-    switch $hash_idx
-		case $i in $ITEMS.$keys()
-            /say @s got here
-            with
-                $(idx) = $i
-            do
-                #$item = $ITEMS[$(idx)]
-                /tellraw @s {text: '$(idx)'}
+    # Store the idx and count NBT in the temp value per player
+    /$scoreboard players set @s item_idx $(id)
+    /$scoreboard players set @s item_count $(count)
+    with
+        $(count) = @s.item_count
+    do
+        switch @s.item_idx
+            case $i in $range($len($ITEMS))
+                $item = $ITEMS[$i]
+                $mc_name = $item[0]
+                $components = $item[1]
+                /execute as @s run function $namespace:_give_item {id: $mc_name, count: $count, components: $components}
             end
-            #$give_item($hash_idx, $count)
-            #/execute run function $namespace:_give_item {id: $id, count: $count, components: $item}
-		end
-	end
+        end
+    end
 end
 
 # Helper function to actually give the item based on loot table
-function _give_item(id, count, i)
+function _give_item()
     /$loot give @s loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
 end
