@@ -169,7 +169,7 @@ class mcworld(object):
 		
 		data_dir = os.path.join(script_dir, 'data')
 		if os.path.isdir(data_dir):
-			print("Found custom 'data' folder at '{data_dir}', adding contents to zip...")
+			print("Found custom 'data' folder, adding contents to zip...")
 
 			# Walk through the custom 'data' directory
 			for root, dirs, files in os.walk(data_dir):

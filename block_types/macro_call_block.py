@@ -15,7 +15,7 @@ class macro_call_block(block_base):
 		params, sub = func.macros[self.macro]
 			
 		if len(self.args) != len(params):
-			raise CompileError(f'Tried to call Macro "{macro}" with {len(args)} arguments at line {get_line(line)}, but it requires {len(params)}')
+			raise CompileError(f'Tried to call Macro "{self.macro}" with {len(self.args)} arguments at line {(self.line)}, but it requires {len(params)}')
 			
 		new_env = func.clone_environment()
 			
