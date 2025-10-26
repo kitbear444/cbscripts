@@ -1,0 +1,44 @@
+{
+  "type": "minecraft:notice",
+  "title": "Dreamscape Item Selector",
+  "body": {
+    "type": "minecraft:item",
+    "item": {
+      "id": "minecraft:breeze_rod",
+      "count": 1
+    },
+    "show_decorations": false,
+    "show_tooltip": true
+  },
+  "inputs": [
+    {
+      "type": "minecraft:text",
+      "key": "item_name",
+      "width": 180,
+      "label": "Item Name",
+      "label_visible": true,
+      "initial": "breeze_band",
+      "max_length": 128
+    },
+    {
+      "type": "minecraft:number_range",
+      "key": "item_count",
+      "width": 140,
+      "label": "Count",
+      "start": 1,
+      "end": 64,
+      "step": 1,
+      "initial": 1
+    }
+  ],
+  "can_close_with_escape": true,
+  "pause": true,
+  "after_action": "close",
+  "action": {
+    "label": "Submit",
+    "action": {
+      "type": "minecraft:dynamic/run_command",
+      "template": "execute as @p run function dream:give {id: \"$(item_name)\", count: $(item_count)}"
+    }
+  }
+}
