@@ -1,8 +1,8 @@
 # Implements dream items
 
-$item_breezeband = ("minecraft:breeze_rod", {"minecraft:item_name": "Breeze Band","minecraft:item_model": "minecraft:breeze_rod", "minecraft:max_stack_size": 1})
-$item_glideglove = ("minecraft:bee_spawn_egg", {"minecraft:item_name": "Glide Glove","minecraft:item_model": "minecraft:bee_spawn_egg", "minecraft:max_stack_size": 1})
-$item_hosehook = ("minecraft:lead", {"minecraft:item_name": "Hose Hook","minecraft:item_model": "minecraft:lead", "minecraft:max_stack_size": 1})
+$item_breezeband = ("minecraft:breeze_rod", {"minecraft:item_name": "Breeze Band", "minecraft:item_model": "minecraft:breeze_rod", "minecraft:max_stack_size": 1})
+$item_glideglove = ("minecraft:bee_spawn_egg", {"minecraft:item_name": "Glide Glove", "minecraft:item_model": "minecraft:bee_spawn_egg", "minecraft:max_stack_size": 1})
+$item_hosehook = ("minecraft:lead", {"minecraft:item_name": "Hose Hook", "minecraft:item_model": "minecraft:lead", "minecraft:max_stack_size": 1})
 
 # Each item is accessed via it's assigned id in the array
 $ITEMS = [
@@ -11,17 +11,14 @@ $ITEMS = [
     $item_hosehook,
 ]
 
-macro $give_item($idx, $count)
-    $item = $ITEMS[$idx]
-    $mc_name = $item[0]
-    $components = $item[1]
-    /loot give @s loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$mc_name",functions:[{function:"minecraft:set_count",count:$count},{function:"minecraft:set_components",components:$components]}]}]}
-end
-
 reset
     # Creates dummy item_id and item_count
     @s.item_idx = 0
     @s.item_count = 1
+
+    # After restore the current item, remove this slot from storage and start restore the next item
+    /data remove storage $namespace:global ItemGiver
+    /data modify storage $namespace:global ItemGiver set value {}
 end
 
 # Technically called by item_select dialog
@@ -30,6 +27,7 @@ function give()
     /$scoreboard players set @s item_idx $(id)
     /$scoreboard players set @s item_count $(count)
     with
+        $(idx) = @s.item_idx
         $(count) = @s.item_count
     do
         switch @s.item_idx
@@ -37,7 +35,13 @@ function give()
                 $item = $ITEMS[$i]
                 $mc_name = $item[0]
                 $components = $item[1]
-                /execute as @s run function $namespace:_give_item {id: $mc_name, count: $count, components: $components}
+                
+                # # Set up storage and then immediately clear it after sending the command
+                /execute run data modify storage $namespace:global ItemGiver set value {id: '$mc_name',count: $(count),components: $components}
+                # # Gives player the item according to loot table
+                /execute as @s run function $namespace:_give_item with storage $namespace:global ItemGiver
+                # # Delete stored player's data
+                /data remove storage $namespace:global ItemGiver
             end
         end
     end
