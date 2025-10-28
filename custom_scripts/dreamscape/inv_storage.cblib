@@ -1,6 +1,8 @@
 # Allows for storing and loading inventory
 # Note: relies on scoreboard ID system, sets it up if not already set up
 
+import player_id
+
 $EQUIPMENT_SLOTS = [
     -106,
     100,
@@ -18,36 +20,12 @@ reset
     /data remove storage $namespace:inv players
     /data remove storage $namespace:inv this
 
-    # Creates ID scoreboard
-    /scoreboard objectives add ID dummy
-    # Counter for setting player IDs
-    count = 0
-
     # Creates dummy Slot
     /scoreboard objectives add Slot dummy
-    # Revokes first time advancement so each player is reassigned an ID
-    /advancement revoke @a only $namespace:first_join 
 end
 
 function init()
     reset()
-end
-
-advancement first_join {
-	criteria: {
-		requirement: {
-			trigger: "minecraft:tick"
-        }
-	},
-	rewards: {
-		"function": "$namespace:_set_id"
-	}
-}
-
-# Sets ID for each player
-function _set_id()
-    @s.ID = count
-    count++
 end
 
 # Stores the running player's current inventory
