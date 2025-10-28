@@ -1,6 +1,45 @@
 # Implements dream items
+# Note: relies on scoreboard ID system, sets it up if not already set up
 
-$item_breezeband = ("minecraft:breeze_rod", {"minecraft:item_name": "Breeze Band", "minecraft:item_model": "minecraft:breeze_rod", "minecraft:max_stack_size": 1})
+import common
+import player_id
+import raycast
+
+$item_breezeband = (
+    "minecraft:breeze_rod", 
+    {
+        "minecraft:item_name": {
+            "text": "Breeze Band", 
+            "color": "blue"
+        }, 
+        "minecraft:lore": [
+            {
+                "text": "It still dreams of the sky", 
+                "color": "light_purple", 
+                "italic": 1
+            }
+        ], 
+        "minecraft:item_model": "minecraft:breeze_rod", 
+        "minecraft:max_stack_size": 1, 
+        "minecraft:consumable": {
+            "consume_seconds": 2147483647, 
+            "animation": "bundle",
+            "has_consume_particles": 0
+        }, 
+        "minecraft:use_effects": {
+            "speed_multiplier": 1, 
+            "can_sprint": 1,
+        },
+        "minecraft:tool": {
+            "can_destroy_blocks_in_creative": 0,
+            "default_mining_speed": 1,
+            "damage_per_block": 0,
+            "rules": [],
+        },
+        "minecraft:custom_data": "{breeze_band:1b}",
+    },
+)
+
 $item_glideglove = ("minecraft:bee_spawn_egg", {"minecraft:item_name": "Glide Glove", "minecraft:item_model": "minecraft:bee_spawn_egg", "minecraft:max_stack_size": 1})
 $item_hosehook = ("minecraft:lead", {"minecraft:item_name": "Hose Hook", "minecraft:item_model": "minecraft:lead", "minecraft:max_stack_size": 1})
 
@@ -11,6 +50,29 @@ $ITEMS = [
     $item_hosehook,
 ]
 
+define @WindCharge: @Entity[type=wind_charge]
+    create {Tags:["projectile"]}
+end
+
+# This advancement triggers the 'use_breeze_band' function
+advancement breeze_band {
+    criteria: {
+        use_item: {
+            trigger: "minecraft:using_item",
+            conditions: {
+                "item": {
+                    "predicates": {
+                        "minecraft:custom_data": {"breeze_band":1}
+                    }
+                }
+            }
+        }
+    },
+    rewards: {
+        "function": "$namespace:use_breeze_band"
+    }
+}
+
 reset
     # Creates dummy item_id and item_count
     @s.item_idx = 0
@@ -19,6 +81,44 @@ reset
     # After restore the current item, remove this slot from storage and start restore the next item
     /data remove storage $namespace:global ItemGiver
     /data modify storage $namespace:global ItemGiver set value {}
+
+    # Recreate the timer storage bucket
+    /data remove storage $namespace:global timers
+
+    # Generates a stopwatch per user. This allows for every player to have their own cooldown timer on item use.
+    # TODO: Devise a way to also do this per item. Current implementation makes each item use the same cooldown timer.
+    as @a
+        with
+            $(ID) = @s.ID
+        do
+            # Set up stopwatch for each player
+            /$stopwatch remove $namespace:item_use_$(ID)
+            /$stopwatch create $namespace:item_use_$(ID)
+            # Set up the timer bucket for each player
+            /$data modify storage $namespace:global timers[{ID:$(ID)}].ID set from entity @s ID
+            # Used just a temporary storage for the value when doing the item_use comparison later
+            @s.item_use = 0
+        end
+    end
+
+    # Revoke all item advancements so they can be run again
+    /advancement revoke @a only $namespace:breeze_band
+
+    # Cleans up any outstanding projectiles
+    /kill @e[tag=projectile]
+end
+
+# Constantly stores the stopwatch value in the dream:global storage for easy usage
+clock item_use
+    as @a
+        # Executes item_use clock with the ID macro
+        with
+            $(ID) = @s.ID
+        do
+            # Stores the stopwatch per player that has an ID in 1000s, that way the float value gets carried to the fourth decimal point
+            /$execute store result storage $namespace:global timers[{ID:$(ID)}].timer float 1 run stopwatch query $namespace:item_use_$(ID) 1000
+        end
+    end
 end
 
 # Technically called by item_select dialog
@@ -35,6 +135,7 @@ function give()
                 $item = $ITEMS[$i]
                 $mc_name = $item[0]
                 $components = $item[1]
+                #$max_count = $item[2]
                 
                 # # Set up storage and then immediately clear it after sending the command
                 /execute run data modify storage $namespace:global ItemGiver set value {id: '$mc_name',count: $(count),components: $components}
@@ -50,4 +151,30 @@ end
 # Helper function to actually give the item based on loot table
 function _give_item()
     /$loot give @s loot {pools:[{rolls:1,entries:[{type:"minecraft:item",name:"$(id)",functions:[{function:"minecraft:set_count",count:$(count)},{function:"minecraft:set_components",components:$(components)}]}]}]}
+end
+
+# Executes the Breeze Bands ability
+function use_breeze_band()
+    with
+        $(ID) = @s.ID
+    do
+        # Store the player's item use timer in the temp item_use value in milliseconds.
+        /$execute store result score @s item_use run data get storage $namespace:global timers[{ID:$(ID)}].timer 1
+        if @s.item_use > 600
+            # Do a raycast to determine where the player is looking, stores in <target_dx, target_dy, target_dz>
+            raycast()
+            # Summons and shoots the wind charge
+            at @s eyes ^-0.3 ^ ^0.5 do as create @WindCharge
+                @s.<vel> = (<target_dx, target_dy, target_dz> / $Precision)
+            end
+            # Plays sound
+            /playsound minecraft:entity.wind_charge.throw player @s ^ ^ ^ 0.5 0.1
+
+            # Reset the timer
+            @s.item_use = 0
+            /$stopwatch restart $namespace:item_use_$(ID)
+        end
+        # Revoke the advancement so it can be run again
+        /advancement revoke @s only $namespace:breeze_band
+    end
 end

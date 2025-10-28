@@ -1,0 +1,36 @@
+# Allows for raycasting
+
+import common
+
+$Precision = 1000
+
+define @Temp = @Marker
+	create {Tags:["direction"]}
+end
+
+reset
+    # Kill any markers
+    /kill @e[tag=direction]
+    # Clear any values
+    <target_dx, target_dy, target_dz> = 0
+    <player_ox, player_oy, player_oz> = 0
+end
+
+# Return raycasted coordinates
+function raycast()
+    # Generate the target position after one tick
+    at @s ^ ^ ^1 do as create @Temp
+        <target_dx, target_dy, target_dz> = (@s.<pos> * $Precision)
+    end
+
+    # Get the players current position
+    as @Player[sort=nearest, limit=1]
+        <player_ox, player_oy, player_oz> = (@s.<pos> * $Precision)
+    end
+    
+    # Calculates movement vector
+    <target_dx, target_dy, target_dz> -= <player_ox, player_oy, player_oz>
+
+    # Cleans up the marker at the end
+    /kill @e[tag=direction]
+end
