@@ -3,6 +3,7 @@
 import common
 
 $Precision = 1000
+$SPEED = 2
 
 define @TargetPos = @Marker
 	create {Tags:["direction", "target_pos"]}
@@ -23,17 +24,17 @@ end
 # Return raycasted coordinates
 function raycast()
     # Generate the target position after one tick
-    at @s ^ ^ ^1 do as create @TargetPos
-        /execute store result score @TargetPos[sort=nearest,limit=1,tag=target_pos] pos_x run data get entity @s Pos[0] $Precision
-        /execute store result score @TargetPos[sort=nearest,limit=1,tag=target_pos] pos_y run data get entity @s Pos[1] $Precision
-        /execute store result score @TargetPos[sort=nearest,limit=1,tag=target_pos] pos_z run data get entity @s Pos[2] $Precision
+    at @s ^ ^ ^$SPEED do as create @TargetPos
+        /execute store result score @s pos_x run data get entity @s Pos[0] $Precision
+        /execute store result score @s pos_y run data get entity @s Pos[1] $Precision
+        /execute store result score @s pos_z run data get entity @s Pos[2] $Precision
     end
 
     # Get the players current position
     at @s do as create @PlayerPos
-        /execute store result score @PlayerPos[sort=nearest,limit=1,tag=player_pos] pos_x run data get entity @s Pos[0] $Precision
-        /execute store result score @PlayerPos[sort=nearest,limit=1,tag=player_pos] pos_y run data get entity @s Pos[1] $Precision
-        /execute store result score @PlayerPos[sort=nearest,limit=1,tag=player_pos] pos_z run data get entity @s Pos[2] $Precision
+        /execute store result score @s pos_x run data get entity @s Pos[0] $Precision
+        /execute store result score @s pos_y run data get entity @s Pos[1] $Precision
+        /execute store result score @s pos_z run data get entity @s Pos[2] $Precision
     end
     
     # Calculates movement vector
