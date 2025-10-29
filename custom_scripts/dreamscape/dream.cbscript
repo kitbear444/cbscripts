@@ -1,4 +1,4 @@
-dir "C:\Users\dcwil\AppData\Roaming\PrismLauncher\instances\Latest Snapshot\minecraft\saves\New World"
+dir "C:\Users\dcwil\AppData\Roaming\PrismLauncher\instances\Latest Snapshot\minecraft\saves\New World (1)"
 desc "Dreamscape datapack...reminiscent of lucid blocks"
 scale 1
 
@@ -18,6 +18,7 @@ $Dimensions = [
 
 $Dreams = [
     "dream:dream1",
+    "dream:dream2",
 ]
 
 # This advancement triggers the '_on_sleep_start' function

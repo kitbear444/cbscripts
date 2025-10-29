@@ -1,0 +1,11 @@
+{
+  "type": "dream:dream2",
+  "generator": {
+    "type": "minecraft:noise",
+    "biome_source": {
+      "type": "minecraft:fixed",
+      "biome": "dream:sunflower"
+    },
+    "settings": "dream:dream2"
+  }
+}
