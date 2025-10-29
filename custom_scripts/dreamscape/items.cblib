@@ -165,7 +165,9 @@ function use_breeze_band()
             raycast()
             # Summons and shoots the wind charge
             at @s eyes ^-0.3 ^ ^0.5 do as create @WindCharge
-                @s.<vel> = (<target_dx, target_dy, target_dz> / $Precision)
+                /execute store result entity @s Motion[0] double 0.001 run scoreboard players get @TargetPos[sort=nearest,limit=1,tag=target_pos] pos_x
+                /execute store result entity @s Motion[1] double 0.001 run scoreboard players get @TargetPos[sort=nearest,limit=1,tag=target_pos] pos_y
+                /execute store result entity @s Motion[2] double 0.001 run scoreboard players get @TargetPos[sort=nearest,limit=1,tag=target_pos] pos_z
             end
             # Plays sound
             /playsound minecraft:entity.wind_charge.throw player @s ^ ^ ^ 0.5 0.1
@@ -173,6 +175,9 @@ function use_breeze_band()
             # Reset the timer
             @s.item_use = 0
             /$stopwatch restart $namespace:item_use_$(ID)
+
+            # Cleans up any markers at the end
+            /kill @e[tag=direction]
         end
         # Revoke the advancement so it can be run again
         /advancement revoke @s only $namespace:breeze_band

@@ -4,33 +4,40 @@ import common
 
 $Precision = 1000
 
-define @Temp = @Marker
-	create {Tags:["direction"]}
+define @TargetPos = @Marker
+	create {Tags:["direction", "target_pos"]}
+end
+
+define @PlayerPos = @Marker
+	create {Tags:["direction", "player_pos"]}
 end
 
 reset
     # Kill any markers
     /kill @e[tag=direction]
-    # Clear any values
-    <target_dx, target_dy, target_dz> = 0
-    <player_ox, player_oy, player_oz> = 0
+    pos_x = 0
+    pos_y = 0
+    pos_z = 0
 end
 
 # Return raycasted coordinates
 function raycast()
     # Generate the target position after one tick
-    at @s ^ ^ ^1 do as create @Temp
-        <target_dx, target_dy, target_dz> = (@s.<pos> * $Precision)
+    at @s ^ ^ ^1 do as create @TargetPos
+        /execute store result score @TargetPos[sort=nearest,limit=1,tag=target_pos] pos_x run data get entity @s Pos[0] $Precision
+        /execute store result score @TargetPos[sort=nearest,limit=1,tag=target_pos] pos_y run data get entity @s Pos[1] $Precision
+        /execute store result score @TargetPos[sort=nearest,limit=1,tag=target_pos] pos_z run data get entity @s Pos[2] $Precision
     end
 
     # Get the players current position
-    as @Player[sort=nearest, limit=1]
-        <player_ox, player_oy, player_oz> = (@s.<pos> * $Precision)
+    at @s do as create @PlayerPos
+        /execute store result score @PlayerPos[sort=nearest,limit=1,tag=player_pos] pos_x run data get entity @s Pos[0] $Precision
+        /execute store result score @PlayerPos[sort=nearest,limit=1,tag=player_pos] pos_y run data get entity @s Pos[1] $Precision
+        /execute store result score @PlayerPos[sort=nearest,limit=1,tag=player_pos] pos_z run data get entity @s Pos[2] $Precision
     end
     
     # Calculates movement vector
-    <target_dx, target_dy, target_dz> -= <player_ox, player_oy, player_oz>
-
-    # Cleans up the marker at the end
-    /kill @e[tag=direction]
+    /scoreboard players operation @TargetPos[sort=nearest,limit=1,tag=target_pos] pos_x -= @PlayerPos[sort=nearest,limit=1,tag=player_pos] pos_x
+    /scoreboard players operation @TargetPos[sort=nearest,limit=1,tag=target_pos] pos_y -= @PlayerPos[sort=nearest,limit=1,tag=player_pos] pos_y
+    /scoreboard players operation @TargetPos[sort=nearest,limit=1,tag=target_pos] pos_z -= @PlayerPos[sort=nearest,limit=1,tag=player_pos] pos_z
 end
