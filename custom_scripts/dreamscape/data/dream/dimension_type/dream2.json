@@ -37,7 +37,7 @@
     "minecraft:visual/cloud_height": 160.33,
     "minecraft:visual/fog_color": "#8080ff",
     "minecraft:visual/sky_color": "#d3a7fc",
-    "minecraft:visual/cloud_opacity": 0.5,
+    "minecraft:visual/cloud_color": "#a6a6ff80",
     "minecraft:gameplay/can_start_raid": false
   },
   "coordinate_scale": 1,

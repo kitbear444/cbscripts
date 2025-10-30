@@ -19,6 +19,7 @@ $Dimensions = [
 $Dreams = [
     "dream:dream1",
     "dream:dream2",
+    "dream:sky",
 ]
 
 # This advancement triggers the '_on_sleep_start' function
