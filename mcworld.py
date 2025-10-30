@@ -118,7 +118,7 @@ class mcworld(object):
 		self.zip.writestr(mcmeta_file, json.dumps({'pack':{'pack_format':1, 'description':desc}}, indent=4))
 	
 	# If data folder exists in a folder named the same as the namespace, add it to the zip
-	def write_data_folder(self, source_file):
+	def write_data_folder(self, source_file, global_context=""):
 		try:
 			script_dir = os.path.dirname(source_file.filename)
 		except AttributeError:
@@ -139,6 +139,10 @@ class mcworld(object):
 					# This preserves the 'data/...' structure
 					arcname = os.path.relpath(file_path, script_dir)
 					
+					if global_context:
+						# Registers this file as a dependency for change monitoring
+						global_context.register_dependency(arcname)
+
 					# Write the file to the zip
 					print(f"  Adding: {arcname}")
 					self.zip.write(file_path, arcname=arcname)
