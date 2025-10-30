@@ -11,6 +11,8 @@ import math
 import collections
 import time
 import os
+import json
+from pathlib import Path
 
 class cbscript(object):
 	def __init__(self, source_file, parse_func):
@@ -18,6 +20,7 @@ class cbscript(object):
 		self.parse = parse_func
 		self.namespace = self.source_file.get_base_name().split('.')[0].lower()
 		self.dependencies = []
+		self.worldversion = 0
 		self.latest_log_file = None
 	
 	def log(self, text):
@@ -80,8 +83,8 @@ class cbscript(object):
 			self.log("Compiler encountered unexpected error during compilation:\a")
 			self.log_traceback()
 		
-	def create_world(self, dir, namespace):
-		return mcworld.mcworld(dir, namespace)
+	def create_world(self, dir, namespace, worldversion):
+		return mcworld.mcworld(dir, namespace, worldversion)
 	
 	def compile_all(self):
 		text = self.source_file.get_text()
@@ -125,10 +128,12 @@ class cbscript(object):
 			print(e)
 			self.dependencies = [source_file(d) for d in self.global_context.dependencies]
 			return False
-		
+		# Gets the world version of the save
+		self.worldversion = self.get_world_version(parsed["dir"])
+
 		self.post_processing()
 			
-		world = self.create_world(parsed["dir"], self.namespace)
+		world = self.create_world(parsed["dir"], self.namespace, self.worldversion)
 
 		latest_log_filename = world.get_latest_log_file()
 		if os.path.exists(latest_log_filename):
@@ -162,7 +167,11 @@ class cbscript(object):
 		
 	def add_max_chain_length(self):
 		f = self.global_context.get_reset_function()
-		f.insert_command('/gamerule maxCommandChainLength 1000000000', 0)
+		# Gamerule names all changed in 25w44a (1.20.11)
+		if self.worldversion >= 4659:
+			f.insert_command('/gamerule max_command_sequence_length 1000000000', 0)
+		else:
+			f.insert_command('/gamerule maxCommandChainLength 1000000000', 0)
 		
 	def initialize_stack(self):
 		f = self.global_context.get_reset_function()
@@ -200,3 +209,44 @@ class cbscript(object):
 		for objective in self.global_context.objectives.keys():
 			if objective not in defined:
 				reset.insert_command(f"/scoreboard objectives add {objective} dummy", 0)
+	
+	# Get the world version by looking for the most recently modified .json file in the stats directory
+	def get_world_version(self, leveldir):
+		try:
+			# Construct a search path for all .json files in the directory
+			statsdir = os.path.join(leveldir, 'stats')
+			search_path = Path(statsdir) #os.path.join(statsdir, '*.json')
+			list_of_files = search_path.glob("*.json") #glob.glob(search_path)
+			key_to_find = 'DataVersion'
+
+			# Handle case where no JSON files are found
+			if not list_of_files:
+				print(f"Error: No .json files found in '{search_path}'")
+				return 0
+
+			# Find the file with the latest modification time
+			latest_file = max(list_of_files, key=os.path.getmtime)
+			#print(f"Found latest file: {os.path.basename(latest_file)}")
+
+			# Open and read the JSON file
+			with open(latest_file, 'r') as f:
+				data = json.load(f)
+
+			# Retrieve the value for the specified key.
+			value = data.get(str(key_to_find))
+
+			if value is None:
+				#print(f"Key '{key_to_find}' not found in {os.path.basename(latest_file)}.")
+				return 0
+			
+			return int(value)
+		
+		except FileNotFoundError:
+			print(f"Error: Directory not found at '{statsdir}'.")
+			return 0
+		except json.JSONDecodeError:
+			print(f"Error: Could not decode JSON from '{os.path.basename(latest_file)}'.")
+			return 0
+		except Exception as e:
+			print(f"An unexpected error occurred: {e}")
+			return 0

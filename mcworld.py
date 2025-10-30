@@ -7,59 +7,17 @@ import json
 import io
 import zipfile
 from CompileError import CompileError
-from pathlib import Path
 
 class mcworld(object):
-	def __init__(self, leveldir, namespace):
+	def __init__(self, leveldir, namespace, worldversion=0):
 		self.current_dir = os.getcwd()
 		self.dir = leveldir
 		self.zipbytes = io.BytesIO()
 		self.zip = zipfile.ZipFile(self.zipbytes, 'w', zipfile.ZIP_DEFLATED, False)
 		self.namespace = namespace
-		self.worldversion = self.get_world_version(leveldir)
+		self.worldversion = worldversion
 		self.unpluralize = self.worldversion >= 3953  # 1.21+
 		print("Minecraft save version: ", self.worldversion, " (", "1.21+" if self.unpluralize else "before 1.21", ")", sep='')
-	
-	# Get the world version by looking for the most recently modified .json file in the stats directory
-	def get_world_version(self, leveldir):
-		try:
-			# Construct a search path for all .json files in the directory
-			statsdir = os.path.join(leveldir, 'stats')
-			search_path = Path(statsdir) #os.path.join(statsdir, '*.json')
-			list_of_files = search_path.glob("*.json") #glob.glob(search_path)
-			key_to_find = 'DataVersion'
-
-			# Handle case where no JSON files are found
-			if not list_of_files:
-				print(f"Error: No .json files found in '{search_path}'")
-				return 0
-
-			# Find the file with the latest modification time
-			latest_file = max(list_of_files, key=os.path.getmtime)
-			#print(f"Found latest file: {os.path.basename(latest_file)}")
-
-			# Open and read the JSON file
-			with open(latest_file, 'r') as f:
-				data = json.load(f)
-
-			# Retrieve the value for the specified key.
-			value = data.get(str(key_to_find))
-
-			if value is None:
-				#print(f"Key '{key_to_find}' not found in {os.path.basename(latest_file)}.")
-				return 0
-			
-			return int(value)
-
-		except FileNotFoundError:
-			print(f"Error: Directory not found at '{statsdir}'.")
-			return 0
-		except json.JSONDecodeError:
-			print(f"Error: Could not decode JSON from '{os.path.basename(latest_file)}'.")
-			return 0
-		except Exception as e:
-			print(f"An unexpected error occurred: {e}")
-			return 0
 		
 	def get_latest_log_file(self):
 		savesdir = os.path.split(self.dir)[0]
