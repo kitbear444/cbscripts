@@ -1,0 +1,9 @@
+{
+  "asset_id": "dream:entity/cow/classic",
+  "model": "normal",
+  "spawn_conditions": [
+    {
+      "priority": 0
+    }
+  ]
+}
