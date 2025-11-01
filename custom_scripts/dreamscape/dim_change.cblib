@@ -1,0 +1,33 @@
+# Defines what happens when the player enters each of the dream dimensions.
+
+reset
+    # Revoke any advancement here, just in case
+    /advancement revoke @a only $namespace:dimension_change_sky
+end
+
+# This advancement triggers the '_on_dim_change_sky' function
+advancement dimension_change_sky {
+    criteria: {
+        dim_change: {
+            trigger: "minecraft:changed_dimension",
+            conditions: {
+                "from": "minecraft:overworld",
+                "to": "$namespace:sky"
+            }
+        }
+    },
+    rewards: {
+        "function": "$namespace:_on_dim_change_sky"
+    }
+}
+
+# Fires anytime player enters the sky dimension
+function _on_dim_change_sky()
+    # Stops any currently playing music
+    /stopsound @s music minecraft:music.game
+    # Might wanna add a delay to this starting to simulate what it looks like in the actual dimension_type structure
+    /playsound $namespace:music.game music @s ~ ~ ~ 1
+
+    # Always remoke the advancement last, that way play can run this function again
+    /advancement revoke @s only $namespace:dimension_change_sky
+end

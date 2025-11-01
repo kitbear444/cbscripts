@@ -7,6 +7,7 @@ import random
 
 import inv_storage
 import items
+import dim_change
 
 $PERCENT_CHANCE = 100
 
@@ -17,9 +18,9 @@ $Dimensions = [
 ]
 
 $Dreams = [
-    "dream:dream1",
-    "dream:dream2",
-    "dream:sky",
+    "$namespace:dream1",
+    "$namespace:dream2",
+    "$namespace:sky",
 ]
 
 # This advancement triggers the '_on_sleep_start' function
