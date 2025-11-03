@@ -9,15 +9,27 @@
         "tick_delay": 6000
       }
     },
+    "minecraft:audio/background_music": {
+      "creative": {
+        "max_delay": 0,
+        "min_delay": 0,
+        "sound": "minecraft:entity.ghast.scream",
+        "replace_current_music": true
+      },
+      "default": {
+        "max_delay": 0,
+        "min_delay": 0,
+        "sound": "minecraft:entity.player.breath",
+        "replace_current_music": true
+      }
+    },
     "minecraft:gameplay/bed_rule": {
       "can_set_spawn": "never",
       "can_sleep": "never",
       "explodes": false,
       "error_message": {
-        "text": "You don't believe that is possible.",
-        "type": "text",
-        "color": "#8080ff",
-        "italic": true
+        "translate": "dream.bed.error",
+        "color": "#8080ff"
       }
     },
     "minecraft:gameplay/nether_portal_spawns_piglin": false,

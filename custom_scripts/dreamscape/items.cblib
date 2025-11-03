@@ -9,16 +9,17 @@ $item_breezeband = (
     "minecraft:breeze_rod", 
     {
         "minecraft:item_name": {
-            "text": "Breeze Band", 
-            "color": "blue"
+            "translate": "item.dream.breeze_band.name"
+        },
+        "minecraft:custom_name": {
+            "translate": "item.dream.breeze_band.name"
         }, 
         "minecraft:lore": [
             {
-                "text": "It still dreams of the sky", 
-                "color": "light_purple", 
-                "italic": 1
+                "translate": "item.dream.breeze_band.lore"
             }
-        ], 
+        ],
+        "minecraft:rarity": "epic", 
         "minecraft:item_model": "minecraft:breeze_rod", 
         "minecraft:max_stack_size": 1, 
         "minecraft:consumable": {

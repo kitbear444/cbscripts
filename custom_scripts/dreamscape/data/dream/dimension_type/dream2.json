@@ -26,10 +26,8 @@
       "can_sleep": "never",
       "explodes": false,
       "error_message": {
-        "text": "You don't believe that is possible.",
-        "type": "text",
-        "color": "#8080ff",
-        "italic": true
+        "translate": "dream.bed.error",
+        "color": "#8080ff"
       }
     },
     "minecraft:gameplay/nether_portal_spawns_piglin": false,

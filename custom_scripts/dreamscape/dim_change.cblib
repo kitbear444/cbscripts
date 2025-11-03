@@ -65,9 +65,10 @@ end
 function _on_dim_change_sky()
     # Stops any currently playing music
     /stopsound @s music minecraft:music.game
+    /stopsound @s music minecraft:music.creative
     # Might wanna add a delay to this starting to simulate what it looks like in the actual dimension_type structure
-    /playsound $namespace:music.game music @s ~ ~ ~ 1
+    #/playsound $namespace:music.game music @s ~ ~ ~ 1
 
-    # Always remoke the advancement last, that way play can run this function again
+    # Always remoke the advancement last, that way this function can be run again
     /advancement revoke @s only $namespace:dimension_change_sky
 end
