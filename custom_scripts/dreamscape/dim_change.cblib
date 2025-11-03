@@ -22,7 +22,7 @@ advancement dream_join {
         }
 	},
 	rewards: {
-		"function": "$namespace:_start_handle_join"
+		"function": "$namespace:_handle_join"
 	}
 }
 
@@ -56,21 +56,9 @@ clock handle_leave
 end
 
 # If a player joins while in a dream, set up that dream's stuff
-function _start_handle_join()
-    # Executes with the ID macro
-    with
-        $(ID) = @s.ID
-    do
-        # Grab the player's current dimension
-        /$data modify storage $namespace:global dimensions[{ID:$(ID)}].dim set from entity @s Dimension
-        # Execute the generic handle_join function with the dimension value
-        /$execute run function $namespace:_handle_join with storage $namespace:global dimensions[{ID:$(ID)}]
-    end
-end
-
-# Generically handles the joining of the world
 function _handle_join()
-    /$execute if dimension $(dim) run function $namespace:_on_dim_change_sky
+    # There would need to be one execute per dream that needs stuff
+    /execute if data entity @s {Dimension: '$namespace:sky'} run function $namespace:_on_dim_change_sky
 end
 
 # Fires anytime player enters the sky dimension
