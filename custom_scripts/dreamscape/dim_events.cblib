@@ -1,0 +1,48 @@
+# Controls events in the dream dimensions themselves.
+
+import common
+
+define @Player : @Player
+	predicate sneaking {
+		condition: "entity_properties",
+		entity: "this",
+		predicate: {
+			flags: {
+				is_sneaking: true
+			}
+		}
+	}
+
+    predicate below_0_and_in_sky {
+		condition: 'location_check',
+		predicate: {
+			position: {
+				y: {
+					min: -100,
+					max: 0
+				}
+			},
+			dimension: "dream:sky"
+		}
+	}
+	
+	predicate survival {
+		condition: 'entity_properties',
+		entity: 'this',
+		predicate: {
+			player: {
+				gamemode: 'survival'
+			}
+		}
+	}
+end
+
+# Runs events in the sky dimension
+clock sky
+    at @Player as @Player if predicate below_0_and_in_sky
+		# Clear the players inventory
+		clear_inventory()
+		# Let the player fall back down to the overworld
+		/execute as @s in minecraft:overworld run tp ~ 320 ~
+	end
+end
