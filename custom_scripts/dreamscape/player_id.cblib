@@ -26,6 +26,8 @@ advancement first_join {
 
 # Sets ID for each player
 function _set_id()
-    @s.ID = count
+    if not @s.ID
+        @s.ID = count
+    end
     count++
 end
