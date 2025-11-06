@@ -47,9 +47,9 @@ class mcworld(object):
 		self.zip.writestr(load_tag_file, json.dumps({'values':[f'{self.namespace}:reset']}, indent=4))
 			
 		for name, list in [
-			({"block" if self.unpluralize else "blocks"}, block_tags),
-			({"item" if self.unpluralize else "items"}, item_tags),
-			({"entity_type" if self.unpluralize else "entity_types"}, entity_tags)
+			("block" if self.unpluralize else "blocks", block_tags),
+			("item" if self.unpluralize else "items", item_tags),
+			("entity_type" if self.unpluralize else "entity_types", entity_tags)
 		]:
 			if len(list) > 0:
 				tag_dir = f'data/{self.namespace}/tags/{name}/'
