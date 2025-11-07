@@ -5,9 +5,12 @@ scale 1
 import common
 import random
 
+# Custom imports
+import player_id
 import inv_storage
 import items
 import dim_change
+import dim_events
 
 $PERCENT_CHANCE = 100
 
@@ -22,6 +25,17 @@ $Dreams = [
     "$namespace:dream2",
     "$namespace:sky",
 ]
+
+$SleeperAngles = {
+    "north": 120.0,
+    "south": -120.0,
+    "east": -120.0,
+    "west": 120.0
+}
+
+define @Sleeper: @Entity[type=mannequin]
+	create {Tags:["sleeper"], pose:"sleeping", immovable:1, hide_description:0, Health:10}
+end
 
 # This advancement triggers the '_on_sleep_start' function
 advancement player_slept {
@@ -55,16 +69,28 @@ function global_reset()
     /scoreboard objectives add death minecraft.custom:minecraft.deaths
     /scoreboard objectives add inDream dummy
     # Sets every players value to 2 just to bypass the 1 check later
-    /scoreboard players set @a hasSlept 2
+    @a.hasSlept = 2
     # Sets every players value to 2 just to bypass the 1 check later
-    /scoreboard players set @s sinceDeath 2
+    @a.sinceDeath = 2
+
+    as @a
+        with
+            $(ID) = @s.ID
+        do
+            # Creates a key in the $namespace:inv storage that is a player array that keys on the players' ID, and skips if that player already exists
+            /$execute unless data storage $namespace:global players[{ID:$(ID)}] run data modify storage $namespace:global players append value {ID:$(ID)}
+            # Adds the UUID for quick usage to the players bucket
+            /$execute run data modify storage $namespace:global players[{ID:$(ID)}].UUID set from entity @s UUID
+        end
+    end
 end
 
 # This function is the reward for the advancement
 function _on_sleep_start()
     # "Flag" the player so we know they are sleeping
     @s.justSlept = 1
-    
+    # Summon sleeping player in position
+    summon_sleeper()
     # Revoke the advancement so it can be granted again next time
     /advancement revoke @s only $namespace:player_slept
 end
@@ -82,7 +108,8 @@ function _handle_sleep()
         switch @s.dream_idx
             case $i in $range($len($Dreams))
                 $dream = $Dreams[$i]
-                /execute in $dream run spreadplayers ~ ~ 0 5 false @s
+                # Send player to random dream dimension
+                #/execute in $dream run spreadplayers ~ ~ 0 5 false @s
             end
         end
         # Identify them as dreaming
@@ -93,6 +120,8 @@ end
 
 # Handles when a player wakes up
 function _handle_wake_up()
+    # Kills the sleeping player
+    kill_sleeper(@s.ID)
     # Restore the players inventory
     restore()
     # Identify them as no longer dreaming
@@ -128,6 +157,66 @@ clock tick
             _handle_wake_up()
         end
     end
+end
+
+# Summon sleeping mannequin player
+function summon_sleeper()
+    with
+        $(ID) = @s.ID
+    do
+        # Adds the UUID for quick usage to the players bucket
+        /$execute run data modify storage $namespace:global players[{ID:$(ID)}].Rotation set from entity @s Rotation
+        /$execute run data modify storage $namespace:global players[{ID:$(ID)}].Pos set from entity @s Pos
+        # Gets temp id from player
+        id = @s.ID
+        # Summons the sleeper
+        as create @Sleeper
+            # Sets the Sleepers name to be the players for skin purposessleeping_pos
+            /$data modify entity @s profile.id set from storage $namespace:global players[{ID:$(ID)}].UUID
+            # Set the Sleeper's ID to the same as the player's
+            @s.ID = id
+        end
+
+        # Moves sleeper into position based on direction of the bed
+        bed_south = False
+		/execute if block ~ ~ ~ #minecraft:beds[facing=south] run scoreboard players set Global bed_south 1
+		if bed_south as @Sleeper at @s feet ~ ~ ~-1.5
+            $move_sleeper($SleeperAngles['south'], 0, 0)
+        end
+
+        bed_north = False
+		/execute if block ~ ~ ~ #minecraft:beds[facing=north] run scoreboard players set Global bed_north 1
+		if bed_north as @Sleeper at @s feet ~ ~ ~1.5
+            $move_sleeper($SleeperAngles['north'], 0, 0)
+        end
+
+        bed_east = False
+		/execute if block ~ ~ ~ #minecraft:beds[facing=east] run scoreboard players set Global bed_east 1
+		if bed_east as @Sleeper at @s feet ~-1.5 ~ ~
+            $move_sleeper(0, 0, $SleeperAngles['east'])
+        end
+
+        bed_west = False
+		/execute if block ~ ~ ~ #minecraft:beds[facing=west] run scoreboard players set Global bed_west 1
+		if bed_west as @Sleeper at @s feet ~1.5 ~ ~
+            $move_sleeper(0, 0, $SleeperAngles['west'])
+        end
+    end
+end
+
+# Kill the sleeping mannequin player
+function kill_sleeper(id)
+    for @sleeper in @Sleeper
+        if @s.ID == id
+            /kill @s
+        end
+    end
+end
+
+# Moves the sleeping mannequin player to the corresponding location and then rotates them by the inputted value
+macro $move_sleeper($xr, $yr, $zr)
+    /tp @s ~ ~ ~
+    /rotate @s facing ~$xr ~$yr ~$zr
 end
 
 # Just a handy function just for me
