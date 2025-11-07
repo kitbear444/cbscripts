@@ -34,7 +34,7 @@ $SleeperAngles = {
 }
 
 define @Sleeper: @Entity[type=mannequin]
-	create {Tags:["sleeper"], pose:"sleeping", immovable:1, hide_description:0, Health:10}
+	create {Tags:["sleeper"], pose:"sleeping", immovable:1, hide_description:0, Health:5}
 end
 
 # This advancement triggers the '_on_sleep_start' function
@@ -49,12 +49,59 @@ advancement player_slept {
     }
 }
 
+# This advancement detects when player kills a sleeper and triggers the '_on_sleeper_killed' function
+advancement player_killed_sleeper {
+    criteria: {
+        killed_sleeper: {
+            trigger: "minecraft:player_killed_entity",
+            conditions: {
+                entity: {
+                    "type": "minecraft:mannequin",
+                    "nbt": "{Tags:[\"sleeper\"]}"
+                }
+            }
+        }
+    },
+    rewards: {
+        "function": "$namespace:_on_sleeper_killed"
+    }
+}
+
+# Visual advancement granted to player first time they kill their Sleeper
+advancement player_killed_sleeper_display {
+  "display": {
+    "icon": {
+      "id": "minecraft:breeze_rod",
+      "components": {
+        "minecraft:enchantment_glint_override": true
+      }
+    },
+    "title": "Just a Bad Dream",
+    "description": "Kill your sleeping self",
+    "background": "minecraft:block/cracked_nether_bricks",
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "impossible": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}
+
 reset
     global_reset()
 end
 
 function global_reset()
     /say Dreamscape reset!
+
+    ## Advancements
+    # Revoke the temp advancements, just in case
+    /advancement revoke @s only $namespace:player_slept
+    /advancement revoke @s only $namespace:player_killed_sleeper
 
     ## Set up scoreboard objectives
     # Resets objectives
@@ -103,13 +150,19 @@ function _handle_sleep()
         store()
         # Clear the players inventory for the new dimension
         clear_inventory()
+        # Reveal the player's Sleeper
+        with
+            $(ID) = @s.ID
+        do
+            /$effect clear @e[tag=sleeper,scores={ID=$(ID)},limit=1]
+        end
         # Put player in random dream dimension
         @s.dream_idx = get_random_dimension()
         switch @s.dream_idx
             case $i in $range($len($Dreams))
                 $dream = $Dreams[$i]
                 # Send player to random dream dimension
-                #/execute in $dream run spreadplayers ~ ~ 0 5 false @s
+                /execute in $dream run spreadplayers ~ ~ 0 5 false @s
             end
         end
         # Identify them as dreaming
@@ -120,8 +173,8 @@ end
 
 # Handles when a player wakes up
 function _handle_wake_up()
-    # Kills the sleeping player
-    kill_sleeper(@s.ID)
+    # Kills the Sleeper player
+    kill_sleeper()
     # Restore the players inventory
     restore()
     # Identify them as no longer dreaming
@@ -171,14 +224,17 @@ function summon_sleeper()
         id = @s.ID
         # Summons the sleeper
         as create @Sleeper
-            # Sets the Sleepers name to be the players for skin purposessleeping_pos
+            # Sets the Sleepers name to be the players for skin purposes
             /$data modify entity @s profile.id set from storage $namespace:global players[{ID:$(ID)}].UUID
+            # Make the Sleeper invisible initially
+            /effect give @s minecraft:invisibility infinite 1 true
             # Set the Sleeper's ID to the same as the player's
             @s.ID = id
         end
 
         # Moves sleeper into position based on direction of the bed
         bed_south = False
+        /say got here 2
 		/execute if block ~ ~ ~ #minecraft:beds[facing=south] run scoreboard players set Global bed_south 1
 		if bed_south as @Sleeper at @s feet ~ ~ ~-1.5
             $move_sleeper($SleeperAngles['south'], 0, 0)
@@ -205,11 +261,13 @@ function summon_sleeper()
 end
 
 # Kill the sleeping mannequin player
-function kill_sleeper(id)
-    for @sleeper in @Sleeper
-        if @s.ID == id
-            /kill @s
-        end
+function kill_sleeper()
+    with
+        $(ID) = @s.ID
+    do
+        /say got here
+        /$tp @e[tag=sleeper,scores={ID=$(ID)},limit=1] ~ -200 ~
+        /$kill @e[tag=sleeper,scores={ID=$(ID)},limit=1]
     end
 end
 
@@ -217,6 +275,33 @@ end
 macro $move_sleeper($xr, $yr, $zr)
     /tp @s ~ ~ ~
     /rotate @s facing ~$xr ~$yr ~$zr
+end
+
+# Handles player killing sleeper themself
+function _on_sleeper_killed()
+    # Clears players inventory before death
+    clear_inventory()
+    # Temporarily turn on immediately_respawn if its not already on
+    immediateRespawn = False
+    /execute store result score Global immediateRespawn run gamerule immediate_respawn
+    if not immediateRespawn
+        /gamerule immediate_respawn true
+    end
+    # Turns off death messages temporarily to do a custom one
+    /gamerule show_death_messages false
+    # Kills the player that the sleeper belongs to simulate waking up
+    /kill @s
+    /tellraw @s ["",{"selector":"@s"},{"text":" was brutally "},{"text":"murdered","strikethrough":true,"color":"dark_red"},{"text":" awoken by "},{"selector":"@s"}]
+    # Turns death messages back on
+    /gamerule show_death_messages true
+    # Turns immediately_respawn back off if necessary
+    if not immediateRespawn
+        /gamerule immediate_respawn false
+    end
+    # Revoke the advancement so it can be granted again next time
+    /advancement revoke @s only $namespace:player_killed_sleeper
+    # If this is the first time the player has done this, grant them the advancement
+    /advancement grant @s only $namespace:player_killed_sleeper_display
 end
 
 # Just a handy function just for me
