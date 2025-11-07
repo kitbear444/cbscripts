@@ -42,7 +42,18 @@ clock sky
     at @Player as @Player if predicate below_0_and_in_sky
 		# Clear the players inventory
 		clear_inventory()
+		# Makes the player invisible before they go back to the overworld
+		/effect give @s minecraft:invisibility infinite 0 true
+		/effect give @s minecraft:glowing infinite 0 true
+		# Set the player as falling
+		@s.sky_falling = True
 		# Let the player fall back down to the overworld
 		/execute as @s in minecraft:overworld run tp ~ 320 ~
+	end
+	# Give player slow fall for a second after falling, that way they don't take fall damage
+	at @Player as @Player if @s.sky_falling unless block ~ ~-1 ~ air
+		/effect give @s slow_falling 1 1 true
+		# Set the player as no longer falling
+		@s.sky_falling = False
 	end
 end
