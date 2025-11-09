@@ -78,7 +78,7 @@ advancement player_killed_sleeper_display {
     },
     "title": "Just a Bad Dream",
     "description": "Kill your sleeping self",
-    "background": "minecraft:block/cracked_nether_bricks",
+    "background": "minecraft:block/light_blue_concrete",
     "frame": "challenge",
     "show_toast": true,
     "announce_to_chat": true,
@@ -315,6 +315,9 @@ function _on_sleeper_killed()
     /advancement revoke @s only $namespace:player_killed_sleeper
     # If this is the first time the player has done this, grant them the advancement
     /advancement grant @s only $namespace:player_killed_sleeper_display
+    # Stops actual advancement sound and play custom one (minecraft:ui.toast.challenge_complete)
+    /stopsound @s ui minecraft:ui.toast.challenge_complete
+    /playsound dream:ui.toast.challenge_complete ui @s ~ ~ ~ 1 1
 end
 
 # Just a handy function just for me
