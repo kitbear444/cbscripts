@@ -154,7 +154,7 @@ function _handle_sleep()
         with
             $(ID) = @s.ID
         do
-            /$effect clear @e[tag=sleeper,scores={ID=$(ID)},limit=1]
+            /$effect clear @Sleeper[tag=sleeper,scores={ID=$(ID)},limit=1]
         end
         # Put player in random dream dimension
         @s.dream_idx = get_random_dimension()
@@ -173,12 +173,13 @@ end
 
 # Handles when a player wakes up
 function _handle_wake_up()
-    # Kills the Sleeper player
-    kill_sleeper()
     # Restore the players inventory
     restore()
     # Identify them as no longer dreaming
     @s.inDream = 0
+    # Kills the Sleeper player
+    ## TODO: Currently doesn't work for some reason
+    kill_sleeper()
 end
 
 # Handles immediately when a player dies in a dream
@@ -234,7 +235,6 @@ function summon_sleeper()
 
         # Moves sleeper into position based on direction of the bed
         bed_south = False
-        /say got here 2
 		/execute if block ~ ~ ~ #minecraft:beds[facing=south] run scoreboard players set Global bed_south 1
 		if bed_south as @Sleeper at @s feet ~ ~ ~-1.5
             $move_sleeper($SleeperAngles['south'], 0, 0)
@@ -257,6 +257,11 @@ function summon_sleeper()
 		if bed_west as @Sleeper at @s feet ~1.5 ~ ~
             $move_sleeper(0, 0, $SleeperAngles['west'])
         end
+
+        # After the sleeper is in position, forceload its chunk
+        as @Sleeper
+            /forceload add ~ ~
+        end
     end
 end
 
@@ -265,9 +270,13 @@ function kill_sleeper()
     with
         $(ID) = @s.ID
     do
-        /say got here
-        /$tp @e[tag=sleeper,scores={ID=$(ID)},limit=1] ~ -200 ~
-        /$kill @e[tag=sleeper,scores={ID=$(ID)},limit=1]
+        # Remove the forceload from the chunk
+        as @Sleeper[limit=1]
+            /forceload remove ~ ~
+        end
+        # Teleport and then kill the sleeper
+        /$tp @Sleeper[scores={ID=$(ID)},limit=1] ~ ~-100 ~
+        /$kill @Sleeper[scores={ID=$(ID)},limit=1]
     end
 end
 
@@ -279,6 +288,10 @@ end
 
 # Handles player killing sleeper themself
 function _on_sleeper_killed()
+    # Remove the forceload from the chunk
+    as @s
+        /forceload remove ~ ~
+    end
     # Clears players inventory before death
     clear_inventory()
     # Temporarily turn on immediately_respawn if its not already on
