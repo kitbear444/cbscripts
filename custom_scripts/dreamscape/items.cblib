@@ -20,7 +20,7 @@ $item_breezeband = (
             }
         ],
         "minecraft:rarity": "epic", 
-        "minecraft:item_model": "minecraft:breeze_rod", 
+        "minecraft:item_model": "dream:breeze_band", 
         "minecraft:max_stack_size": 1, 
         "minecraft:consumable": {
             "consume_seconds": 2147483647, 
